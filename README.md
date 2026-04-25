@@ -1,6 +1,6 @@
 # RemoteTail
 
-A Windows desktop app for tailing log files on remote Linux servers over SSH. Built with Electron + Node.js.
+A Windows desktop app for tailing log files on remote Linux servers over SSH. Built with Electron + Node.js. I did not found any app that could do exactly what I want so I build it myself using Claude Code.
 
 ## Features
 
