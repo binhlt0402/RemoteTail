@@ -1,0 +1,10 @@
+node_modules/
+dist/
+out/
+
+# User data generated at runtime (may contain passwords)
+configs.json
+prefs.json
+
+*.log
+.env
