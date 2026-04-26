@@ -119,7 +119,7 @@ pub async fn tail_session(
     )
     .await;
 
-    let mut session = match session {
+    let session = match session {
         Ok(s) => s,
         Err(e) => {
             emit(&app, &tab_id, "error", &format!("Connection failed: {e}"));
@@ -207,7 +207,7 @@ pub async fn browse_sftp(
     passphrase: Option<String>,
     path: String,
 ) -> Result<Value> {
-    let mut session = connect_session(
+    let session = connect_session(
         &host,
         port,
         &username,
