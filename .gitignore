@@ -3,6 +3,16 @@ node_modules/
 dist/
 out/
 
+# Rust build artifacts
+src-tauri/target/
+src-tauri/gen/
+
+# Tauri generated icons (source app-icon kept, generated files ignored)
+src-tauri/icons/AppIcon-*.png
+src-tauri/icons/mipmap-*/
+src-tauri/icons/Square*.png
+src-tauri/icons/StoreLogo.png
+
 # User data generated at runtime (may contain passwords)
 configs.json
 prefs.json

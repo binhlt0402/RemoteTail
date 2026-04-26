@@ -1,0 +1,42 @@
+[package]
+name = "remotetail"
+version = "1.0.0"
+description = "SSH-based remote log tail viewer"
+edition = "2021"
+
+[lib]
+name = "remotetail_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "remotetail"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-util = { version = "0.7", features = ["rt"] }
+russh = "0.45"
+russh-keys = "0.45"
+russh-sftp = "2"
+anyhow = "1"
+dirs = "5"
+sha1 = "0.10"
+cbc = { version = "0.1", features = ["alloc"] }
+aes = "0.8"
+base64 = "0.22"
+rand = "0.8"
+num-bigint = "0.4"
+async-trait = "0.1"
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"
+codegen-units = 1
+panic = "abort"

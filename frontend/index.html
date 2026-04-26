@@ -864,19 +864,18 @@
   // ── Configs (persisted to disk via server API) ───────────────────────────
   let _configs = {};
 
+  const { invoke } = window.__TAURI__.core;
+  const { listen } = window.__TAURI__.event;
+
   async function initConfigs() {
-    try { _configs = await fetch('/api/configs').then(r => r.json()); } catch {}
+    try { _configs = await invoke('get_configs'); } catch { _configs = {}; }
     refreshConfigSelect();
     updateBrowseSection();
   }
 
   function saveAllConfigs(data) {
     _configs = data;
-    fetch('/api/configs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).catch(() => {});
+    invoke('save_configs', { data }).catch(() => {});
   }
 
   function getCurrentFormValues() {
@@ -1146,12 +1145,6 @@
     return (b / 1048576).toFixed(1) + ' MB';
   }
 
-  // ── WebSocket ─────────────────────────────────────────────────────────────
-  function getWsUrl() {
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    return `${proto}://${location.host}`;
-  }
-
   function setStatus(state, text) {
     statusText.textContent = text;
     statusDot.className = 'status-dot ' + state;
@@ -1176,68 +1169,30 @@
       return;
     }
 
-    if (tab.ws) { try { tab.ws.close(); } catch {} }
-
     // Name tab after connection
     const fileName = filePath.split('/').filter(Boolean).pop() || filePath;
     tab.name = `${host}: ${fileName}`;
     renderTabBar();
 
-    const ws = new WebSocket(getWsUrl());
-    tab.ws = ws;
     setStatus('', 'Connecting...');
 
-    ws.onopen = () => {
-      const msg = { type: 'connect', host, port, username, authType, filePath, lines };
-      if (authType === 'password') {
-        msg.password = document.getElementById('password').value;
-      } else {
-        msg.privateKey = privateKeyContent;
-        msg.passphrase = document.getElementById('passphrase').value;
-      }
-      ws.send(JSON.stringify(msg));
+    const args = {
+      tabId: String(tab.id),
+      host, port, username, authType, filePath, lines,
+      password:   authType === 'password' ? document.getElementById('password').value : null,
+      privateKey: authType === 'key'      ? privateKeyContent : null,
+      passphrase: authType === 'key'      ? document.getElementById('passphrase').value : null,
     };
 
-    ws.onmessage = event => {
-      const msg = JSON.parse(event.data);
-      if (msg.type === 'log') {
-        appendLog(tab, msg.text);
-      } else if (msg.type === 'status') {
-        tab.connected = true;
-        if (tab.id === activeTabId) {
-          setStatus('connected', msg.text);
-          connectBtn.textContent = '⏹ Disconnect';
-          connectBtn.classList.add('disconnect');
-        }
-        appendLog(tab, '▶ ' + msg.text, true);
-        renderTabBar();
-      } else if (msg.type === 'error') {
-        if (tab.id === activeTabId) setStatus('error', msg.text);
-        appendLog(tab, '✖ ' + msg.text, false, true);
-      }
-    };
-
-    ws.onclose = () => {
-      tab.ws = null;
-      tab.connected = false;
-      if (tab.id === activeTabId) {
-        setStatus('', 'Disconnected');
-        connectBtn.textContent = '⚡ Connect';
-        connectBtn.classList.remove('disconnect');
-      }
-      renderTabBar();
-    };
-
-    ws.onerror = () => {
-      if (tab.id === activeTabId) setStatus('error', 'WebSocket error');
-    };
+    invoke('ssh_connect', args).catch(err => {
+      if (tab.id === activeTabId) setStatus('error', String(err));
+      appendLog(tab, '✖ ' + err, false, true);
+    });
   }
 
   function disconnectTab(tab) {
-    if (!tab.ws) return;
-    try { tab.ws.send(JSON.stringify({ type: 'disconnect' })); } catch {}
-    try { tab.ws.close(); } catch {}
-    tab.ws = null;
+    if (!tab.connected) return;
+    invoke('ssh_disconnect', { tabId: String(tab.id) }).catch(() => {});
     tab.connected = false;
     if (tab.id === activeTabId) {
       setStatus('', 'Disconnected');
@@ -1388,21 +1343,20 @@
     browseStatus.textContent = '';
 
     try {
-      const res = await fetch('/api/browse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...getBrowseCreds(), path: p }),
+      const creds = getBrowseCreds();
+      const data = await invoke('browse_sftp', {
+        host: creds.host, port: creds.port, username: creds.username,
+        authType: creds.authType,
+        password:   creds.authType === 'password' ? creds.password : null,
+        privateKey: creds.authType === 'key'      ? creds.privateKey : null,
+        passphrase: creds.authType === 'key'      ? creds.passphrase : null,
+        path: p,
       });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        browseList.innerHTML = `<div class="browse-msg error">✖ ${data.error || 'Error'}</div>`;
-        return;
-      }
       browseEntries = data.entries;
       renderBrowseEntries(sortedEntries(data.entries), p);
       browseStatus.textContent = `${data.entries.length} item${data.entries.length !== 1 ? 's' : ''}`;
     } catch (err) {
-      browseList.innerHTML = `<div class="browse-msg error">✖ ${err.message}</div>`;
+      browseList.innerHTML = `<div class="browse-msg error">✖ ${err}</div>`;
     }
   }
 
@@ -1592,11 +1546,7 @@
     btn.textContent = theme === 'dark' ? '☀' : '☾';
     btn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
     if (save) {
-      fetch('/api/prefs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ theme }),
-      }).catch(() => {});
+      invoke('save_prefs', { data: { theme } }).catch(() => {});
     }
   }
 
@@ -1606,8 +1556,8 @@
 
   async function initPrefs() {
     try {
-      const prefs = await fetch('/api/prefs').then(r => r.json());
-      if (prefs.theme) applyTheme(prefs.theme, false);
+      const prefs = await invoke('get_prefs');
+      if (prefs && prefs.theme) applyTheme(prefs.theme, false);
     } catch {}
   }
 
@@ -1615,6 +1565,37 @@
   createTab('Tab 1');
   initConfigs();
   initPrefs();
+
+  // ── Tauri event listener for SSH log streaming ────────────────────────────
+  listen('log-event', event => {
+    const { tabId, type, text } = event.payload;
+    const tab = getTab(parseInt(tabId));
+    if (!tab) return;
+
+    if (type === 'log') {
+      appendLog(tab, text);
+    } else if (type === 'status') {
+      tab.connected = true;
+      if (tab.id === activeTabId) {
+        setStatus('connected', text);
+        connectBtn.textContent = '⏹ Disconnect';
+        connectBtn.classList.add('disconnect');
+      }
+      appendLog(tab, '▶ ' + text, true);
+      renderTabBar();
+    } else if (type === 'error') {
+      if (tab.id === activeTabId) setStatus('error', text);
+      appendLog(tab, '✖ ' + text, false, true);
+    } else if (type === 'closed') {
+      tab.connected = false;
+      if (tab.id === activeTabId) {
+        setStatus('', 'Disconnected');
+        connectBtn.textContent = '⚡ Connect';
+        connectBtn.classList.remove('disconnect');
+      }
+      renderTabBar();
+    }
+  });
 </script>
 </body>
 </html>
