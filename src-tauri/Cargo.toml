@@ -1,6 +1,6 @@
 [package]
 name = "remotetail"
-version = "1.0.1"
+version = "2.0.1"
 description = "SSH-based remote log tail viewer"
 edition = "2021"
 
