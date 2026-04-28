@@ -1,6 +1,6 @@
 [package]
 name = "remotetail"
-version = "1.0.0"
+version = "1.0.1"
 description = "SSH-based remote log tail viewer"
 edition = "2021"
 
@@ -33,6 +33,7 @@ base64 = "0.22"
 rand = "0.8"
 num-bigint = "0.4"
 async-trait = "0.1"
+argon2 = { version = "0.5", features = ["std"] }
 
 [profile.release]
 strip = true

@@ -39,12 +39,12 @@ async fn authenticate(
         }
     } else {
         let key_str = private_key.unwrap_or("");
-        let pem = if key_str.contains("PuTTY-User-Key-File-") {
-            convert_ppk_to_openssh(key_str, passphrase)?
+        let (pem, decode_passphrase) = if key_str.contains("PuTTY-User-Key-File-") {
+            (convert_ppk_to_openssh(key_str, passphrase)?, None)
         } else {
-            key_str.to_string()
+            (key_str.to_string(), passphrase)
         };
-        let key_pair = russh_keys::decode_secret_key(&pem, passphrase)?;
+        let key_pair = russh_keys::decode_secret_key(&pem, decode_passphrase)?;
         if !session
             .authenticate_publickey(username, Arc::new(key_pair))
             .await?

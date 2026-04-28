@@ -1,10 +1,10 @@
 {
   "name": "remotetail",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SSH-based remote log tail viewer for Windows",
   "scripts": {
-    "dev":   "cargo tauri dev",
-    "build": "cargo tauri build"
+    "dev":   "npx tauri dev",
+    "build": "npx tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

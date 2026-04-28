@@ -2,6 +2,15 @@ use anyhow::{anyhow, Result};
 use base64::Engine;
 use num_bigint::BigUint;
 
+#[derive(Default)]
+struct Argon2Params {
+    variant: String,
+    memory: u32,
+    passes: u32,
+    parallelism: u32,
+    salt: Vec<u8>,
+}
+
 pub fn convert_ppk_to_openssh(ppk_content: &str, passphrase: Option<&str>) -> Result<String> {
     let mut key_type = String::new();
     let mut version = 0u32;
@@ -9,6 +18,7 @@ pub fn convert_ppk_to_openssh(ppk_content: &str, passphrase: Option<&str>) -> Re
     let mut comment = String::new();
     let mut pub_lines: Vec<String> = Vec::new();
     let mut priv_lines: Vec<String> = Vec::new();
+    let mut argon2 = Argon2Params::default();
 
     let mut state = "header";
     let mut lines_left = 0usize;
@@ -29,9 +39,14 @@ pub fn convert_ppk_to_openssh(ppk_content: &str, passphrase: Option<&str>) -> Re
         if let Some((k, v)) = line.split_once(": ") {
             match k {
                 "PuTTY-User-Key-File-2" => { version = 2; key_type = v.to_string(); }
-                "PuTTY-User-Key-File-3" => { version = 3; }
-                "Encryption" => { encryption = v.to_string(); }
-                "Comment" => { comment = v.to_string(); }
+                "PuTTY-User-Key-File-3" => { version = 3; key_type = v.to_string(); }
+                "Encryption"       => { encryption = v.to_string(); }
+                "Comment"          => { comment = v.to_string(); }
+                "Key-Derivation"   => { argon2.variant = v.to_string(); }
+                "Argon2-Memory"    => { argon2.memory = v.trim().parse().unwrap_or(0); }
+                "Argon2-Passes"    => { argon2.passes = v.trim().parse().unwrap_or(0); }
+                "Argon2-Parallelism" => { argon2.parallelism = v.trim().parse().unwrap_or(0); }
+                "Argon2-Salt"      => { argon2.salt = decode_hex(v.trim()); }
                 "Public-Lines" => {
                     state = "pub";
                     lines_left = v.trim().parse().unwrap_or(0);
@@ -46,11 +61,6 @@ pub fn convert_ppk_to_openssh(ppk_content: &str, passphrase: Option<&str>) -> Re
     }
 
     if version == 0 { return Err(anyhow!("Not a PPK file.")); }
-    if version == 3 {
-        return Err(anyhow!(
-            "PPK v3 (PuTTY ≥ 0.75) is not supported.\nFix: PuTTYgen → Conversions → Export OpenSSH key → select that file."
-        ));
-    }
 
     let pub_b64 = pub_lines.join("");
     let pub_bytes = base64::engine::general_purpose::STANDARD.decode(&pub_b64)?;
@@ -59,15 +69,20 @@ pub fn convert_ppk_to_openssh(ppk_content: &str, passphrase: Option<&str>) -> Re
     let mut priv_bytes = base64::engine::general_purpose::STANDARD.decode(&priv_b64)?;
 
     if !encryption.is_empty() && encryption != "none" {
-        let pass = passphrase.ok_or_else(|| anyhow!("Key is passphrase-protected but no passphrase was provided."))?;
-        priv_bytes = decrypt_priv(&priv_bytes, pass)?;
+        let pass = passphrase
+            .ok_or_else(|| anyhow!("Key is passphrase-protected but no passphrase was provided."))?;
+        priv_bytes = if version == 3 {
+            decrypt_priv_v3(&priv_bytes, pass, &argon2)?
+        } else {
+            decrypt_priv_v2(&priv_bytes, pass)?
+        };
     }
 
     let pub_fields = read_fields(&pub_bytes);
     let priv_fields = read_fields(&priv_bytes);
 
     match key_type.as_str() {
-        "ssh-rsa" => build_rsa_pem(&pub_fields, &priv_fields),
+        "ssh-rsa"    => build_rsa_pem(&pub_fields, &priv_fields),
         "ssh-ed25519" => Ok(build_ed25519_openssh(&pub_fields, &priv_fields, &comment)),
         other => Err(anyhow!(
             "PPK key type \"{other}\" is not supported for auto-conversion.\nFix: PuTTYgen → Conversions → Export OpenSSH key → select that file."
@@ -75,12 +90,12 @@ pub fn convert_ppk_to_openssh(ppk_content: &str, passphrase: Option<&str>) -> Re
     }
 }
 
-fn decrypt_priv(data: &[u8], passphrase: &str) -> Result<Vec<u8>> {
+// PPK v2: SHA-1 based key derivation, AES-256-CBC, zero IV
+fn decrypt_priv_v2(data: &[u8], passphrase: &str) -> Result<Vec<u8>> {
     use aes::cipher::{BlockDecryptMut, KeyIvInit};
     use sha1::{Digest, Sha1};
 
     let pass = passphrase.as_bytes();
-
     let k1 = Sha1::new().chain_update([0u8, 0, 0, 0]).chain_update(pass).finalize();
     let k2 = Sha1::new().chain_update([0u8, 0, 0, 1]).chain_update(pass).finalize();
 
@@ -91,10 +106,44 @@ fn decrypt_priv(data: &[u8], passphrase: &str) -> Result<Vec<u8>> {
     let iv = [0u8; 16];
 
     type Aes256CbcDec = cbc::Decryptor<aes::Aes256>;
-    let decryptor = Aes256CbcDec::new(&key.into(), &iv.into());
-    decryptor
+    cbc::Decryptor::<aes::Aes256>::new(&key.into(), &iv.into())
         .decrypt_padded_vec_mut::<cbc::cipher::block_padding::NoPadding>(data)
         .map_err(|e| anyhow!("Decryption error: {:?}", e))
+}
+
+// PPK v3: Argon2 key derivation, AES-256-CBC
+// Key material layout: [0..32] AES key | [32..48] IV | [48..80] MAC key
+fn decrypt_priv_v3(data: &[u8], passphrase: &str, params: &Argon2Params) -> Result<Vec<u8>> {
+    use aes::cipher::{BlockDecryptMut, KeyIvInit};
+    use argon2::{Algorithm, Argon2, Params, Version};
+
+    let algorithm = match params.variant.as_str() {
+        "Argon2d"  => Algorithm::Argon2d,
+        "Argon2i"  => Algorithm::Argon2i,
+        _          => Algorithm::Argon2id,
+    };
+
+    let argon2_params = Params::new(params.memory, params.passes, params.parallelism, Some(80))
+        .map_err(|e| anyhow!("Invalid Argon2 parameters: {}", e))?;
+
+    let mut output = vec![0u8; 80];
+    Argon2::new(algorithm, Version::V0x13, argon2_params)
+        .hash_password_into(passphrase.as_bytes(), &params.salt, &mut output)
+        .map_err(|e| anyhow!("Argon2 key derivation failed: {}", e))?;
+
+    let key: &[u8; 32] = output[..32].try_into().unwrap();
+    let iv: &[u8; 16]  = output[32..48].try_into().unwrap();
+
+    cbc::Decryptor::<aes::Aes256>::new(key.into(), iv.into())
+        .decrypt_padded_vec_mut::<cbc::cipher::block_padding::NoPadding>(data)
+        .map_err(|e| anyhow!("Decryption error: {:?}", e))
+}
+
+fn decode_hex(s: &str) -> Vec<u8> {
+    (0..s.len())
+        .step_by(2)
+        .filter_map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok())
+        .collect()
 }
 
 fn read_fields(buf: &[u8]) -> Vec<Vec<u8>> {
