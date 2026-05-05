@@ -541,6 +541,87 @@
     white-space: nowrap;
   }
   .key-filename.loaded { color: var(--green); }
+
+  /* History panel */
+  .history-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
+  }
+  .history-header.open { margin-bottom: 8px; }
+  .history-chevron { display: inline-block; transition: transform 0.2s; font-style: normal; }
+  .history-chevron.collapsed { transform: rotate(-90deg); }
+  .history-list { display: flex; flex-direction: column; gap: 1px; }
+  .history-list.collapsed { display: none; }
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .history-item:hover { background: rgba(255,255,255,0.05); }
+  .history-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+  }
+  .history-badge.remote { background: rgba(0,168,252,0.15); color: var(--cyan); }
+  .history-badge.local  { background: var(--green-glow); color: var(--green); }
+  .history-label {
+    flex: 1;
+    font-size: 11px;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .history-time { font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+  .history-del {
+    background: none;
+    border: none;
+    color: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .history-item:hover .history-del { color: var(--text-muted); }
+  .history-del:hover { color: var(--red) !important; }
+  .history-empty { font-size: 11px; color: var(--text-muted); padding: 2px 0; }
+
+  /* Source type toggle */
+  .source-toggle {
+    display: flex;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .src-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .src-btn:not(:last-child) { border-right: 1px solid var(--border2); }
+  .src-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .src-btn.active { background: var(--green-glow); color: var(--green); }
 </style>
 </head>
 <body>
@@ -560,6 +641,16 @@
 
 <div class="main">
   <div class="sidebar" id="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-label">Source</div>
+      <div class="source-toggle">
+        <button class="src-btn active" id="src-remote">Remote (SSH)</button>
+        <button class="src-btn" id="src-local">Local File</button>
+      </div>
+    </div>
+
+    <div id="remote-panel">
 
     <!-- Always-visible: connection selector -->
     <div class="sidebar-section">
@@ -659,6 +750,38 @@
         </div>
       </div>
 
+    </div>
+
+    </div><!-- /remote-panel -->
+
+    <div id="local-panel" style="display:none">
+      <div class="sidebar-section">
+        <div class="section-label">Log File</div>
+        <div class="field">
+          <label>FILE PATH</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" id="local-file-path" placeholder="C:\logs\app.log" style="flex:1" />
+            <button class="btn-sm" id="btn-browse-local">Browse</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>INITIAL LINES</label>
+          <input type="number" id="local-tail-lines" value="100" min="1" max="5000" />
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <button class="connect-btn" id="local-connect-btn">⚡ Connect</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section" id="history-section">
+      <div class="section-label history-header open" id="history-header">
+        <span>Recent</span>
+        <span class="history-chevron" id="history-chevron">▾</span>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="history-empty">No recent connections</div>
+      </div>
     </div>
 
   </div>
@@ -816,16 +939,19 @@
     matchCount.textContent = '';
     if (document.getElementById('find-panel').classList.contains('open')) runFind();
 
+    // Reset both buttons, then update the one for this tab's source
+    connectBtn.textContent = '⚡ Connect'; connectBtn.classList.remove('disconnect');
+    localConnectBtn.textContent = '⚡ Connect'; localConnectBtn.classList.remove('disconnect');
+
+    const activeBtn = getConnectBtn(tab);
     if (tab.connected) {
       statusDot.className = 'status-dot connected';
       statusText.textContent = 'Connected';
-      connectBtn.textContent = '⏹ Disconnect';
-      connectBtn.classList.add('disconnect');
+      activeBtn.textContent = '⏹ Disconnect';
+      activeBtn.classList.add('disconnect');
     } else {
       statusDot.className = 'status-dot';
       statusText.textContent = 'Not connected';
-      connectBtn.textContent = '⚡ Connect';
-      connectBtn.classList.remove('disconnect');
     }
   }
 
@@ -863,6 +989,31 @@
 
   // ── Configs (persisted to disk via server API) ───────────────────────────
   let _configs = {};
+
+  const localConnectBtn = document.getElementById('local-connect-btn');
+
+  function getConnectBtn(tab) {
+    return (tab && tab.source === 'local') ? localConnectBtn : connectBtn;
+  }
+
+  // ── Source mode toggle ────────────────────────────────────────────────────
+  let sourceMode = 'remote';
+
+  document.getElementById('src-remote').addEventListener('click', () => {
+    sourceMode = 'remote';
+    document.getElementById('src-remote').classList.add('active');
+    document.getElementById('src-local').classList.remove('active');
+    document.getElementById('remote-panel').style.display = '';
+    document.getElementById('local-panel').style.display = 'none';
+  });
+
+  document.getElementById('src-local').addEventListener('click', () => {
+    sourceMode = 'local';
+    document.getElementById('src-local').classList.add('active');
+    document.getElementById('src-remote').classList.remove('active');
+    document.getElementById('local-panel').style.display = '';
+    document.getElementById('remote-panel').style.display = 'none';
+  });
 
   const { invoke } = window.__TAURI__.core;
   const { listen } = window.__TAURI__.event;
@@ -1156,7 +1307,47 @@
     tab.connected ? disconnectTab(tab) : connectTab(tab);
   });
 
+  localConnectBtn.addEventListener('click', () => {
+    const tab = getActiveTab();
+    if (!tab) return;
+    tab.connected ? disconnectTab(tab) : connectLocalTab(tab);
+  });
+
+  function connectLocalTab(tab) {
+    const filePath = document.getElementById('local-file-path').value.trim();
+    const lines    = parseInt(document.getElementById('local-tail-lines').value) || 100;
+
+    if (!filePath) {
+      setStatus('error', 'Please enter a file path');
+      return;
+    }
+
+    addHistory({ source: 'local', filePath, lines });
+    tab.source = 'local';
+    const fileName = filePath.split(/[/\\]/).filter(Boolean).pop() || filePath;
+    tab.name = fileName;
+    renderTabBar();
+
+    setStatus('', 'Opening...');
+
+    invoke('local_connect', { tabId: String(tab.id), filePath, lines }).catch(err => {
+      if (tab.id === activeTabId) setStatus('error', String(err));
+      appendLog(tab, '✖ ' + err, false, true);
+    });
+  }
+
+  document.getElementById('btn-browse-local').addEventListener('click', async () => {
+    try {
+      const path = await window.__TAURI__.dialog.open({
+        multiple: false,
+        title: 'Select log file',
+      });
+      if (path) document.getElementById('local-file-path').value = path;
+    } catch {}
+  });
+
   function connectTab(tab) {
+    tab.source = 'remote';
     const host     = document.getElementById('host').value.trim();
     const port     = parseInt(document.getElementById('port').value) || 22;
     const username = document.getElementById('username').value.trim();
@@ -1168,6 +1359,9 @@
       setStatus('error', 'Please fill in Host, Username, and File Path');
       return;
     }
+
+    const configName = document.getElementById('config-select').value;
+    addHistory({ source: 'remote', configName, filePath, lines });
 
     // Name tab after connection
     const fileName = filePath.split('/').filter(Boolean).pop() || filePath;
@@ -1192,12 +1386,13 @@
 
   function disconnectTab(tab) {
     if (!tab.connected) return;
-    invoke('ssh_disconnect', { tabId: String(tab.id) }).catch(() => {});
+    invoke('disconnect', { tabId: String(tab.id) }).catch(() => {});
     tab.connected = false;
     if (tab.id === activeTabId) {
       setStatus('', 'Disconnected');
-      connectBtn.textContent = '⚡ Connect';
-      connectBtn.classList.remove('disconnect');
+      const btn = getConnectBtn(tab);
+      btn.textContent = '⚡ Connect';
+      btn.classList.remove('disconnect');
     }
     renderTabBar();
   }
@@ -1561,10 +1756,168 @@
     } catch {}
   }
 
+  // ── History ───────────────────────────────────────────────────────────────
+  let _history = [];
+
+  function formatRelTime(ts) {
+    const s = Math.floor((Date.now() - ts) / 1000);
+    if (s < 60) return 'just now';
+    const m = Math.floor(s / 60);
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
+
+  function saveHistory() {
+    invoke('save_history', { data: _history }).catch(() => {});
+  }
+
+  function addHistory(item) {
+    const key = item.source === 'local'
+      ? `local:${item.filePath}`
+      : `remote:${item.configName}:${item.filePath}`;
+    _history = _history.filter(h => {
+      const hk = h.source === 'local' ? `local:${h.filePath}` : `remote:${h.configName}:${h.filePath}`;
+      return hk !== key;
+    });
+    _history.unshift({ ...item, id: Date.now() });
+    if (_history.length > 30) _history = _history.slice(0, 30);
+    saveHistory();
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (!_history.length) {
+      list.innerHTML = '<div class="history-empty">No recent connections</div>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    _history.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'history-item';
+
+      const badge = document.createElement('span');
+      badge.className = 'history-badge ' + (item.source === 'local' ? 'local' : 'remote');
+      badge.textContent = item.source === 'local' ? 'loc' : 'ssh';
+
+      const label = document.createElement('span');
+      label.className = 'history-label';
+      const fullLabel = item.source === 'local'
+        ? item.filePath
+        : `${item.configName}: ${item.filePath.split('/').filter(Boolean).pop() || item.filePath}`;
+      label.title = fullLabel;
+      label.textContent = fullLabel;
+
+      const time = document.createElement('span');
+      time.className = 'history-time';
+      time.textContent = formatRelTime(item.id);
+
+      const del = document.createElement('button');
+      del.className = 'history-del';
+      del.title = 'Remove';
+      del.textContent = '×';
+      del.addEventListener('click', e => {
+        e.stopPropagation();
+        _history = _history.filter(h => h.id !== item.id);
+        saveHistory();
+        renderHistory();
+      });
+
+      div.appendChild(badge);
+      div.appendChild(label);
+      div.appendChild(time);
+      div.appendChild(del);
+      div.addEventListener('click', () => connectFromHistory(item));
+      frag.appendChild(div);
+    });
+    list.innerHTML = '';
+    list.appendChild(frag);
+  }
+
+  function connectFromHistory(item) {
+    const tab = createTab();
+    if (item.source === 'local') {
+      tab.source = 'local';
+      tab.name = item.filePath.split(/[/\\]/).filter(Boolean).pop() || item.filePath;
+      renderTabBar();
+      setStatus('', 'Opening...');
+      invoke('local_connect', { tabId: String(tab.id), filePath: item.filePath, lines: item.lines })
+        .catch(err => { if (tab.id === activeTabId) setStatus('error', String(err)); appendLog(tab, '✖ ' + err, false, true); });
+    } else {
+      const cfg = _configs[item.configName];
+      if (!cfg) {
+        _history = _history.filter(h => h.id !== item.id);
+        saveHistory();
+        renderHistory();
+        setStatus('error', `Config "${item.configName}" no longer exists`);
+        return;
+      }
+      tab.source = 'remote';
+      tab.name = `${item.configName}: ${item.filePath.split('/').filter(Boolean).pop() || item.filePath}`;
+      renderTabBar();
+      setStatus('', 'Connecting...');
+      invoke('ssh_connect', {
+        tabId: String(tab.id),
+        host: cfg.host, port: parseInt(cfg.port) || 22,
+        username: cfg.username, authType: cfg.authType || 'password',
+        filePath: item.filePath, lines: item.lines,
+        password: cfg.authType !== 'key' ? (cfg.password || '') : null,
+        privateKey: cfg.authType === 'key' ? (cfg.privateKey || null) : null,
+        passphrase: cfg.authType === 'key' ? (cfg.passphrase || null) : null,
+      }).catch(err => { if (tab.id === activeTabId) setStatus('error', String(err)); appendLog(tab, '✖ ' + err, false, true); });
+    }
+  }
+
+  document.getElementById('history-header').addEventListener('click', () => {
+    const list = document.getElementById('history-list');
+    const chevron = document.getElementById('history-chevron');
+    const header = document.getElementById('history-header');
+    const isOpen = !list.classList.contains('collapsed');
+    list.classList.toggle('collapsed', isOpen);
+    chevron.classList.toggle('collapsed', isOpen);
+    header.classList.toggle('open', !isOpen);
+  });
+
+  async function initHistory() {
+    try {
+      const h = await invoke('get_history');
+      _history = Array.isArray(h) ? h : [];
+    } catch { _history = []; }
+    renderHistory();
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────
   createTab('Tab 1');
   initConfigs();
   initPrefs();
+  initHistory();
+
+  invoke('get_startup_args').then(args => {
+    if (!args) return;
+    const tab = tabs[0];
+    const fileName = args.filePath.split('/').filter(Boolean).pop() || args.filePath;
+    tab.source = 'remote';
+    tab.name = `${args.host}: ${fileName}`;
+    renderTabBar();
+    setStatus('', 'Connecting...');
+    invoke('ssh_connect', {
+      tabId: String(tab.id),
+      host: args.host,
+      port: args.port,
+      username: args.username,
+      authType: args.authType,
+      filePath: args.filePath,
+      lines: 100,
+      password: args.password ?? null,
+      privateKey: args.privateKey ?? null,
+      passphrase: args.passphrase ?? null,
+    }).catch(err => {
+      if (tab.id === activeTabId) setStatus('error', String(err));
+      appendLog(tab, '✖ ' + err, false, true);
+    });
+  }).catch(() => {});
 
   // ── Tauri event listener for SSH log streaming ────────────────────────────
   listen('log-event', event => {
@@ -1578,8 +1931,9 @@
       tab.connected = true;
       if (tab.id === activeTabId) {
         setStatus('connected', text);
-        connectBtn.textContent = '⏹ Disconnect';
-        connectBtn.classList.add('disconnect');
+        const btn = getConnectBtn(tab);
+        btn.textContent = '⏹ Disconnect';
+        btn.classList.add('disconnect');
       }
       appendLog(tab, '▶ ' + text, true);
       renderTabBar();
@@ -1590,8 +1944,9 @@
       tab.connected = false;
       if (tab.id === activeTabId) {
         setStatus('', 'Disconnected');
-        connectBtn.textContent = '⚡ Connect';
-        connectBtn.classList.remove('disconnect');
+        const btn = getConnectBtn(tab);
+        btn.textContent = '⚡ Connect';
+        btn.classList.remove('disconnect');
       }
       renderTabBar();
     }

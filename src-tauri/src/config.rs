@@ -42,3 +42,14 @@ pub fn write_prefs(app: &tauri::AppHandle, data: &Value) -> Result<()> {
     let dir = config_dir(app)?;
     write_json(&dir.join("prefs.json"), data)
 }
+
+pub fn read_history(app: &tauri::AppHandle) -> Result<Value> {
+    let dir = config_dir(app)?;
+    let val = read_json(&dir.join("history.json"));
+    Ok(if val.is_array() { val } else { Value::Array(vec![]) })
+}
+
+pub fn write_history(app: &tauri::AppHandle, data: &Value) -> Result<()> {
+    let dir = config_dir(app)?;
+    write_json(&dir.join("history.json"), data)
+}

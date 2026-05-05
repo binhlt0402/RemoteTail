@@ -4,8 +4,9 @@ use russh::client;
 use russh_keys::key::PublicKey;
 use serde_json::Value;
 use std::sync::Arc;
-use tauri::Emitter;
 use tokio_util::sync::CancellationToken;
+
+use crate::emit;
 
 use crate::ppk::convert_ppk_to_openssh;
 
@@ -79,13 +80,6 @@ async fn connect_session(
 }
 
 // ── Log streaming ─────────────────────────────────────────────────────────────
-
-fn emit(app: &tauri::AppHandle, tab_id: &str, kind: &str, text: &str) {
-    let _ = app.emit(
-        "log-event",
-        serde_json::json!({ "tabId": tab_id, "type": kind, "text": text }),
-    );
-}
 
 pub async fn tail_session(
     app: tauri::AppHandle,
