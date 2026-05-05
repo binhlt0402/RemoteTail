@@ -145,30 +145,8 @@ async fn local_connect(
 
 #[tauri::command]
 async fn get_startup_args() -> Result<Option<serde_json::Value>, String> {
-    let mut map = std::collections::HashMap::new();
-    for arg in std::env::args().skip(1) {
-        if let Some(kv) = arg.strip_prefix("--") {
-            if let Some((k, v)) = kv.split_once('=') {
-                map.insert(k.to_string(), v.to_string());
-            }
-        }
-    }
-    if !map.contains_key("host") || !map.contains_key("path") {
-        return Ok(None);
-    }
-    let private_key = map.get("key")
-        .and_then(|path| std::fs::read_to_string(path).ok());
-
-    Ok(Some(serde_json::json!({
-        "host":       map["host"],
-        "port":       map.get("port").and_then(|p| p.parse::<u16>().ok()).unwrap_or(22),
-        "username":   map.get("username").map(|s| s.as_str()).unwrap_or(""),
-        "authType":   map.get("auth").map(|s| s.as_str()).unwrap_or("password"),
-        "password":   map.get("password"),
-        "privateKey": private_key,
-        "passphrase": map.get("passphrase"),
-        "filePath":   map["path"],
-    })))
+    let args: Vec<String> = std::env::args().collect();
+    Ok(parse_open_tab_args(&args))
 }
 
 #[tauri::command]
@@ -184,9 +162,44 @@ async fn disconnect(
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
+fn parse_open_tab_args(args: &[String]) -> Option<serde_json::Value> {
+    let mut map = std::collections::HashMap::new();
+    for arg in args.iter().skip(1) {
+        if let Some(kv) = arg.strip_prefix("--") {
+            if let Some((k, v)) = kv.split_once('=') {
+                map.insert(k.to_string(), v.to_string());
+            }
+        }
+    }
+    if !map.contains_key("host") || !map.contains_key("path") {
+        return None;
+    }
+    let private_key = map.get("key")
+        .and_then(|p| std::fs::read_to_string(p).ok());
+    Some(serde_json::json!({
+        "host":       map["host"],
+        "port":       map.get("port").and_then(|p| p.parse::<u16>().ok()).unwrap_or(22),
+        "username":   map.get("username").map(|s| s.as_str()).unwrap_or(""),
+        "authType":   map.get("auth").map(|s| s.as_str()).unwrap_or("password"),
+        "password":   map.get("password"),
+        "privateKey": private_key,
+        "passphrase": map.get("passphrase"),
+        "filePath":   map["path"],
+    }))
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(SessionManager::new())
+        .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+            if let Some(payload) = parse_open_tab_args(&args) {
+                let _ = app.emit("open-tab", payload);
+            }
+            // Bring the window to the front
+            if let Some(w) = app.get_webview_window("main") {
+                let _ = w.set_focus();
+            }
+        }))
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             get_configs,

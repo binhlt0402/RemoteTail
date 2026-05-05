@@ -1919,6 +1919,32 @@
     });
   }).catch(() => {});
 
+  // ── Open-tab event (sent by single-instance plugin when a second instance is launched) ──
+  listen('open-tab', event => {
+    const args = event.payload;
+    const tab = createTab();
+    const fileName = args.filePath.split('/').filter(Boolean).pop() || args.filePath;
+    tab.source = 'remote';
+    tab.name = `${args.host}: ${fileName}`;
+    renderTabBar();
+    setStatus('', 'Connecting...');
+    invoke('ssh_connect', {
+      tabId: String(tab.id),
+      host: args.host,
+      port: args.port,
+      username: args.username,
+      authType: args.authType,
+      filePath: args.filePath,
+      lines: 100,
+      password: args.password ?? null,
+      privateKey: args.privateKey ?? null,
+      passphrase: args.passphrase ?? null,
+    }).catch(err => {
+      if (tab.id === activeTabId) setStatus('error', String(err));
+      appendLog(tab, '✖ ' + err, false, true);
+    });
+  });
+
   // ── Tauri event listener for SSH log streaming ────────────────────────────
   listen('log-event', event => {
     const { tabId, type, text } = event.payload;
