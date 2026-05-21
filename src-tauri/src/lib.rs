@@ -185,6 +185,7 @@ fn parse_open_tab_args(args: &[String]) -> Option<serde_json::Value> {
         "privateKey": private_key,
         "passphrase": map.get("passphrase"),
         "filePath":   map["path"],
+        "lines":      map.get("lines").and_then(|p| p.parse::<u32>().ok()).unwrap_or(100),
     }))
 }
 

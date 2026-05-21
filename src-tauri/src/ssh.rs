@@ -132,8 +132,13 @@ pub async fn tail_session(
     };
 
     let escaped = file_path.replace('\'', "'\\''");
+    let initial_tail = if lines == 0 {
+        "tail -n +1".to_string()
+    } else {
+        format!("tail -n {lines}")
+    };
     let cmd = format!(
-        "bash -c 'tail -n {lines} \"{escaped}\"; sz=$(wc -c < \"{escaped}\"); \
+        "bash -c '{initial_tail} \"{escaped}\"; sz=$(wc -c < \"{escaped}\"); \
          while true; do sleep 0.5; nsz=$(wc -c < \"{escaped}\"); \
          if [ \"$nsz\" -gt \"$sz\" ] 2>/dev/null; then tail -c +$((sz+1)) \"{escaped}\"; sz=$nsz; \
          elif [ \"$nsz\" -lt \"$sz\" ] 2>/dev/null; then sz=0; fi; done'"
