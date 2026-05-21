@@ -4,89 +4,99 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RemoteTail</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #313338;
+    --bg: #1e1f22;
     --panel: #2b2d31;
-    --border: #3f4147;
-    --border2: #4e5058;
-    --green: #23a55a;
-    --green-dim: #23a55a44;
-    --green-glow: #23a55a18;
-    --cyan: #00a8fc;
+    --panel2: #232428;
+    --hover: #313338;
+    --border: #3a3c41;
+    --border2: #4a4c52;
+    --green: #43b581;
+    --green-dim: rgba(67,181,129,0.16);
+    --green-glow: rgba(67,181,129,0.08);
+    --cyan: #5fb3ff;
     --yellow: #f0b232;
-    --red: #f23f42;
-    --red-dim: #f23f4222;
+    --red: #ed4245;
+    --red-dim: rgba(237,66,69,0.16);
     --text: #f2f3f5;
     --text-dim: #b5bac1;
     --text-muted: #80848e;
-    --input-bg: #1e1f22;
+    --input-bg: #1c1d20;
     --scrollbar: #1e1f22;
   }
 
   [data-theme="light"] {
-    --bg: #f0f4f8;
+    --bg: #f4f5f8;
     --panel: #ffffff;
-    --border: #dde3ed;
-    --border2: #c4cfe0;
-    --green: #007a4d;
-    --green-dim: #007a4d30;
-    --green-glow: #007a4d12;
-    --cyan: #006fa0;
+    --panel2: #eef0f4;
+    --hover: #e9ebf0;
+    --border: #dde2ea;
+    --border2: #c8d0dc;
+    --green: #1f8a5b;
+    --green-dim: rgba(31,138,91,0.16);
+    --green-glow: rgba(31,138,91,0.08);
+    --cyan: #1f7fcc;
     --yellow: #8a6200;
-    --red: #c01f38;
-    --red-dim: #c01f3818;
-    --text: #1a2535;
-    --text-dim: #445a72;
-    --text-muted: #7a8fa6;
+    --red: #c8232e;
+    --red-dim: rgba(200,35,46,0.14);
+    --text: #1a2230;
+    --text-dim: #445166;
+    --text-muted: #7a8699;
     --input-bg: #f7f9fc;
     --scrollbar: #b8c8d8;
   }
 
-  [data-theme="light"] body::before { display: none; }
   [data-theme="light"] .line-text.level-error   { color: #b81a30; }
   [data-theme="light"] .line-text.level-warn    { color: #7a5500; }
   [data-theme="light"] .line-text.level-debug   { color: #607080; }
   [data-theme="light"] .line-text.level-success { color: #006e40; }
-  [data-theme="light"] .log-line.status-line .line-text { color: #006fa0; }
+  [data-theme="light"] .log-line.status-line .line-text { color: #1f7fcc; }
   [data-theme="light"] .highlight { background: rgba(200,160,0,0.2); color: #7a5500; }
-  [data-theme="light"] .tab-bar  { background: #e3e5e8; }
-  [data-theme="light"] .tab.active { background: #ffffff; }
+  [data-theme="light"] .tab-bar  { background: var(--bg); }
+  [data-theme="light"] .log-container { background: #fafbfd; }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-    pointer-events: none;
-    z-index: 1000;
-  }
+  /* ── Crafted icons ──────────────────────────────────────────────────────── */
+  .ic { width: 13px; height: 13px; display: inline-block; vertical-align: -2px; flex-shrink: 0; }
+  .ic-lg { width: 34px; height: 34px; }
 
+  /* ── Header ─────────────────────────────────────────────────────────────── */
   header {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 12px 20px;
+    gap: 14px;
+    padding: 11px 18px;
     border-bottom: 1px solid var(--border);
     background: var(--panel);
     flex-shrink: 0;
   }
 
-  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.05em; color: var(--green); text-shadow: 0 0 20px var(--green-dim); }
-  .logo span { color: var(--cyan); }
+  .logo {
+    display: flex;
+    align-items: baseline;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    color: var(--green);
+    user-select: none;
+  }
+  .logo .logo-dot { width: 4px; height: 4px; border-radius: 1px; background: var(--cyan); margin: 0 5px; transform: translateY(-1px); }
+  .logo .tail { color: var(--cyan); }
 
   .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; transition: all 0.3s; }
   .status-dot.connected { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
@@ -96,53 +106,86 @@
 
   #status-text { font-size: 11px; color: var(--text-dim); flex: 1; }
 
-  .header-actions { display: flex; gap: 8px; margin-left: auto; }
+  .header-actions { display: flex; gap: 6px; margin-left: auto; }
+
+  .icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .icon-btn:hover { color: var(--green); background: var(--green-glow); }
 
   .btn-sm {
     background: transparent;
     border: 1px solid var(--border2);
     color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: inherit;
     font-size: 11px;
-    padding: 4px 10px;
+    padding: 5px 11px;
     cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.2s;
+    border-radius: 4px;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
   }
   .btn-sm:hover { border-color: var(--green); color: var(--green); }
+  .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-sm:disabled:hover { border-color: var(--border2); color: var(--text-dim); }
   .btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+  .btn-sm.icon-only { padding: 5px 7px; }
+  .btn-sm.active { border-color: var(--green); color: var(--green); background: var(--green-glow); }
 
   .main { display: flex; flex: 1; overflow: hidden; }
 
+  /* ── Sidebar ────────────────────────────────────────────────────────────── */
   .sidebar {
-    width: 280px;
+    width: 282px;
     flex-shrink: 0;
     border-right: 1px solid var(--border);
     background: var(--panel);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    transition: width 0.3s;
+    transition: width 0.25s;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar) transparent;
   }
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
   .sidebar.collapsed { width: 0; overflow: hidden; }
 
   .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
 
-  .section-label { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 12px; }
+  .section-label {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
 
   .field { margin-bottom: 10px; }
 
-  label { display: block; font-size: 10px; color: var(--text-dim); margin-bottom: 4px; letter-spacing: 0.05em; }
+  label { display: block; font-size: 9.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; letter-spacing: 0.12em; text-transform: uppercase; }
 
   input, select {
     width: 100%;
     background: var(--input-bg);
     border: 1px solid var(--border2);
     color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: inherit;
     font-size: 12px;
-    padding: 6px 8px;
-    border-radius: 3px;
+    padding: 7px 9px;
+    border-radius: 4px;
     outline: none;
     transition: border-color 0.2s;
   }
@@ -158,10 +201,10 @@
     background: var(--input-bg);
     border: 1px solid var(--border2);
     color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: inherit;
     font-size: 11px;
-    padding: 6px 8px;
-    border-radius: 3px;
+    padding: 7px 9px;
+    border-radius: 4px;
     outline: none;
     resize: vertical;
     min-height: 80px;
@@ -170,28 +213,120 @@
   textarea:focus { border-color: var(--green); }
   textarea::placeholder { color: var(--text-muted); }
 
+  /* ── Segmented control (source + auth toggles) ──────────────────────────── */
+  .seg {
+    display: flex;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .seg-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 7px 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .seg-btn:not(:last-child) { border-right: 1px solid var(--border2); }
+  .seg-btn:hover { color: var(--text); background: var(--hover); }
+  .seg-btn.active { background: var(--green-glow); color: var(--green); }
+
   .auth-section { display: none; }
   .auth-section.active { display: block; }
+
+  /* ── Connection cards ───────────────────────────────────────────────────── */
+  .conn-list { display: flex; flex-direction: column; gap: 3px; }
+  .conn-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .conn-card:hover { background: var(--hover); }
+  .conn-card.active { background: var(--green-glow); border-color: var(--green-dim); }
+  .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; }
+  .conn-card.active .conn-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .conn-meta { flex: 1; min-width: 0; }
+  .conn-name { font-size: 11.5px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conn-card.active .conn-name { color: var(--text); font-weight: 500; }
+  .conn-sub { font-size: 9.5px; color: var(--text-muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .conn-key { font-size: 9px; color: var(--text-muted); letter-spacing: 0.08em; flex-shrink: 0; }
+  .conn-empty { font-size: 11px; color: var(--text-muted); padding: 2px 0; }
+  .conn-actions { display: flex; gap: 5px; margin-top: 12px; }
+  .conn-actions .btn-sm { flex: 1; padding: 5px 0; }
+  .conn-actions .btn-sm.icon-only { flex: 0 0 auto; padding: 5px 8px; }
+
+  /* ── Key file picker ────────────────────────────────────────────────────── */
+  .key-pick-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--input-bg);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 4px 4px 4px 9px;
+    transition: border-color 0.2s;
+  }
+  .key-filename {
+    flex: 1;
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .key-filename.loaded { color: var(--green); }
+
+  /* ── Buttons ────────────────────────────────────────────────────────────── */
+  .btn-wide {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+  }
+  .btn-wide:hover { border-color: var(--green); color: var(--green); }
 
   .connect-btn {
     width: 100%;
     background: transparent;
     border: 1px solid var(--green);
     color: var(--green);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: inherit;
     font-size: 12px;
     font-weight: 600;
     padding: 9px;
     cursor: pointer;
-    border-radius: 3px;
-    letter-spacing: 0.1em;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
     transition: all 0.2s;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
   }
   .connect-btn:hover { background: var(--green-glow); box-shadow: 0 0 20px var(--green-dim); }
   .connect-btn.disconnect { border-color: var(--red); color: var(--red); }
   .connect-btn.disconnect:hover { background: var(--red-dim); box-shadow: 0 0 20px var(--red-dim); }
 
+  /* ── Log panel ──────────────────────────────────────────────────────────── */
   .log-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
   .log-toolbar {
@@ -204,19 +339,46 @@
     flex-shrink: 0;
   }
 
-  .search-wrap { position: relative; flex: 1; }
-  .search-wrap input { padding-left: 28px; font-size: 12px; height: 28px; }
-  .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12px; }
-  .match-count { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
-  .toolbar-sep { width: 1px; height: 16px; background: var(--border2); }
+  .search-wrap { position: relative; flex: 1; min-width: 120px; max-width: 380px; }
+  .search-wrap input { padding-left: 30px; font-size: 12px; height: 28px; }
+  .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; }
+  .match-count { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+  .toolbar-sep { width: 1px; height: 16px; background: var(--border2); flex-shrink: 0; }
+  .toolbar-spacer { flex: 1; }
 
-  .toggle-wrap { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
-  .toggle { width: 28px; height: 14px; border-radius: 7px; background: var(--border2); position: relative; transition: background 0.2s; flex-shrink: 0; }
-  .toggle::after { content: ''; position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--text-dim); top: 2px; left: 2px; transition: all 0.2s; }
+  /* ── Level facet pills ──────────────────────────────────────────────────── */
+  .pills { display: flex; gap: 6px; flex-shrink: 0; }
+  .pill {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+    background: rgba(127,127,127,0.1);
+    color: var(--text-muted);
+  }
+  .pill b { font-weight: 700; }
+  .pill-err  { background: var(--red-dim);   color: var(--red); }
+  .pill-warn { background: rgba(240,178,50,0.15); color: var(--yellow); }
+  .pill-info { background: rgba(95,179,255,0.15); color: var(--cyan); }
+  .pill-dbg  { background: rgba(127,127,127,0.1); color: var(--text-muted); }
+
+  /* On narrow windows, drop the level pills (indicators only) before the
+     functional controls so nothing essential gets clipped. */
+  @media (max-width: 1120px) {
+    .pills { display: none; }
+    .match-count + .toolbar-sep { display: none; }
+  }
+
+  .toggle-wrap { display: flex; align-items: center; gap: 7px; font-size: 10.5px; color: var(--text-dim); cursor: pointer; white-space: nowrap; }
+  .toggle { width: 26px; height: 14px; border-radius: 7px; background: var(--border2); position: relative; transition: background 0.2s; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--text-muted); top: 2px; left: 2px; transition: all 0.2s; }
   .toggle.on { background: var(--green-dim); }
-  .toggle.on::after { background: var(--green); left: 16px; }
+  .toggle.on::after { background: var(--green); left: 14px; }
 
-  /* Tab bar */
+  /* ── Tab bar ────────────────────────────────────────────────────────────── */
   .tab-bar {
     display: flex;
     align-items: stretch;
@@ -231,7 +393,7 @@
   .tab {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: 8px;
     padding: 0 14px;
     height: 34px;
     font-size: 11px;
@@ -244,8 +406,8 @@
     flex-shrink: 0;
     user-select: none;
   }
-  .tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }
-  .tab.active { color: var(--green); border-bottom-color: var(--green); background: rgba(0,255,136,0.03); }
+  .tab:hover { color: var(--text); background: var(--hover); }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); background: var(--green-glow); }
 
   .tab-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; transition: all 0.2s; }
   .tab.connected .tab-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
@@ -256,10 +418,9 @@
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    padding: 1px 3px;
-    border-radius: 2px;
+    display: flex;
+    padding: 2px;
+    border-radius: 3px;
     margin-left: 2px;
     transition: all 0.15s;
   }
@@ -270,23 +431,23 @@
     border: none;
     color: var(--text-dim);
     cursor: pointer;
-    font-size: 18px;
     padding: 0 14px;
     flex-shrink: 0;
     transition: color 0.2s;
-    align-self: center;
+    display: flex;
+    align-items: center;
   }
   .btn-new-tab:hover { color: var(--green); }
 
-  /* Log container */
-  .log-container { flex: 1; overflow: hidden; position: relative; }
+  /* ── Log container ──────────────────────────────────────────────────────── */
+  .log-container { flex: 1; overflow: hidden; position: relative; background: var(--bg); }
 
   .log-output {
     display: none;
     position: absolute;
     inset: 0;
     overflow-y: auto;
-    padding: 12px 0;
+    padding: 10px 0;
     font-size: 12.5px;
     line-height: 1.65;
     scrollbar-width: thin;
@@ -297,29 +458,34 @@
   .log-output::-webkit-scrollbar-track { background: transparent; }
   .log-output::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
 
-  .log-line { padding: 1px 16px; transition: background 0.1s; display: flex; gap: 12px; }
-  .log-line:hover { background: rgba(255,255,255,0.02); }
-  .line-num { color: var(--text-muted); font-size: 10px; user-select: none; min-width: 40px; text-align: right; padding-top: 1px; flex-shrink: 0; }
+  .log-line {
+    padding: 1.5px 16px;
+    display: flex;
+    gap: 12px;
+    border-left: 3px solid transparent;
+    transition: background 0.1s;
+  }
+  .log-line:hover { background: var(--hover); }
+  .line-num { color: var(--text-muted); font-size: 10px; user-select: none; min-width: 44px; text-align: right; padding-top: 2px; flex-shrink: 0; }
   .line-text { flex: 1; word-break: break-all; }
 
-  .line-text.level-error { color: #ff6b6b; }
-  .line-text.level-warn  { color: #f0b232; }
+  .line-text.level-error { color: #ff7479; }
+  .line-text.level-warn  { color: var(--yellow); }
   .line-text.level-info  { color: var(--text); }
   .line-text.level-debug { color: #9aa3b2; }
-  .line-text.level-success { color: #3ba55d; }
+  .line-text.level-success { color: var(--green); }
   .log-line.status-line .line-text { color: var(--cyan); font-style: italic; }
 
-
-  .highlight { background: rgba(255, 214, 10, 0.25); color: var(--yellow); border-radius: 2px; padding: 0 1px; }
+  .highlight { background: rgba(240,178,50,0.3); color: var(--yellow); border-radius: 2px; padding: 0 1px; }
 
   .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 12px; color: var(--text-muted); }
-  .empty-icon { font-size: 36px; opacity: 0.3; }
-  .empty-text { font-size: 12px; letter-spacing: 0.05em; }
+  .empty-icon { opacity: 0.3; }
+  .empty-text { font-size: 12px; letter-spacing: 0.03em; }
 
   .log-footer {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     padding: 6px 14px;
     border-top: 1px solid var(--border);
     background: var(--panel);
@@ -329,23 +495,25 @@
   }
   #line-count, #byte-count { color: var(--text-dim); }
   .footer-spacer { flex: 1; }
-
-  .sidebar-toggle { background: transparent; border: none; color: var(--text-dim); cursor: pointer; padding: 4px 6px; font-size: 14px; border-radius: 3px; transition: color 0.2s; }
-  .sidebar-toggle:hover { color: var(--green); }
+  .stream-ind { display: inline-flex; align-items: center; gap: 5px; color: var(--text-muted); }
+  .stream-ind::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .stream-ind.live { color: var(--green); }
+  .stream-ind.live::before { box-shadow: 0 0 6px var(--green); }
+  .stream-ind.paused { color: var(--yellow); }
 
   @keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes newLine {
-    0%   { box-shadow: inset 3px 0 0 var(--green); background: rgba(35,165,90,0.15); }
-    55%  { box-shadow: inset 3px 0 0 var(--green); background: rgba(35,165,90,0.08); }
-    100% { box-shadow: none; background: transparent; }
+    0%   { border-left-color: var(--green); background: var(--green-glow); }
+    60%  { border-left-color: var(--green); background: var(--green-glow); }
+    100% { border-left-color: transparent; background: transparent; }
   }
   .log-line { animation: fadeIn 0.1s ease; }
   .log-line-new { animation: fadeIn 0.1s ease, newLine 3s ease forwards; }
 
-  @keyframes lineFlash { 0% { background: rgba(255,214,10,0.35); } 100% { background: transparent; } }
+  @keyframes lineFlash { 0% { background: rgba(240,178,50,0.35); } 100% { background: transparent; } }
   .line-flash { animation: lineFlash 1s ease; }
 
-  /* Find panel */
+  /* ── Find panel ─────────────────────────────────────────────────────────── */
   .find-panel {
     display: none;
     flex-direction: column;
@@ -364,24 +532,36 @@
     cursor: n-resize;
     z-index: 10;
   }
-  .find-resize:hover { background: rgba(0,255,136,0.08); }
+  .find-resize:hover { background: var(--green-glow); }
 
   .find-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     padding: 6px 14px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
   }
   .find-title { font-size: 9px; font-weight: 600; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; white-space: nowrap; }
-  .find-header input { flex: 1; height: 26px; font-size: 12px; }
-  .find-count { font-size: 10px; color: var(--text-dim); white-space: nowrap; min-width: 70px; text-align: right; }
+  .find-header input { flex: 1; height: 26px; font-size: 12px; border-color: var(--green); }
+  .find-count { font-size: 10px; color: var(--text-dim); white-space: nowrap; min-width: 64px; text-align: right; }
+
+  .find-nav {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .find-nav:hover { border-color: var(--green); color: var(--green); }
 
   .find-close {
     background: none; border: none; color: var(--text-dim);
-    cursor: pointer; font-size: 16px; padding: 0 4px;
-    border-radius: 2px; transition: color 0.2s; line-height: 1;
+    cursor: pointer; display: flex; padding: 3px;
+    border-radius: 3px; transition: color 0.2s;
   }
   .find-close:hover { color: var(--red); }
 
@@ -404,19 +584,21 @@
     transition: background 0.1s;
     font-size: 12px;
     line-height: 1.6;
+    border-left: 2px solid transparent;
   }
-  .find-item:hover { background: rgba(0,255,136,0.05); }
-  .find-item:hover .find-item-num { color: var(--cyan); }
+  .find-item:hover { background: var(--green-glow); }
+  .find-item.active { background: var(--green-glow); border-left-color: var(--green); }
+  .find-item.active .find-item-num { color: var(--green); }
 
-  .find-item-num { color: var(--text-muted); font-size: 10px; min-width: 40px; text-align: right; padding-top: 2px; flex-shrink: 0; user-select: none; }
+  .find-item-num { color: var(--text-muted); font-size: 10px; min-width: 44px; text-align: right; padding-top: 2px; flex-shrink: 0; user-select: none; }
   .find-item-text { flex: 1; word-break: break-all; color: var(--text-dim); }
 
-  /* File browser modal */
+  /* ── File browser modal ─────────────────────────────────────────────────── */
   .modal-overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.55);
     z-index: 500;
     align-items: center;
     justify-content: center;
@@ -426,43 +608,46 @@
   .browse-modal {
     background: var(--panel);
     border: 1px solid var(--border2);
-    border-radius: 4px;
-    width: 560px;
+    border-radius: 8px;
+    width: 600px;
     max-width: 92vw;
-    height: 520px;
+    height: 540px;
     max-height: 88vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.55);
   }
 
   .browse-modal-header {
     display: flex;
     align-items: center;
-    padding: 11px 16px;
+    gap: 10px;
+    padding: 13px 18px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
+    color: var(--green);
   }
-  .browse-modal-title { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; color: var(--green); flex: 1; }
-  .browse-modal-close { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 18px; padding: 0 4px; border-radius: 2px; transition: color 0.2s; line-height: 1; }
+  .browse-modal-title { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; flex: 1; }
+  .browse-modal-close { background: none; border: none; color: var(--text-dim); cursor: pointer; display: flex; padding: 3px; border-radius: 3px; transition: color 0.2s; }
   .browse-modal-close:hover { color: var(--red); }
 
   .browse-path-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 12px;
+    gap: 8px;
+    padding: 10px 14px;
     border-bottom: 1px solid var(--border);
     background: var(--bg);
     flex-shrink: 0;
   }
-  .browse-path-bar input { flex: 1; font-size: 11px; height: 26px; }
+  .browse-path-bar input { flex: 1; font-size: 11.5px; height: 28px; }
 
   .browse-list {
     flex: 1;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--scrollbar) transparent;
+    padding: 4px 0;
   }
   .browse-list::-webkit-scrollbar { width: 6px; }
   .browse-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
@@ -471,7 +656,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 12px;
+    padding: 6px 14px;
     border-bottom: 1px solid var(--border);
     background: var(--bg);
     flex-shrink: 0;
@@ -481,9 +666,9 @@
     background: none;
     border: 1px solid var(--border2);
     color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: inherit;
     font-size: 10px;
-    padding: 2px 8px;
+    padding: 3px 9px;
     border-radius: 3px;
     cursor: pointer;
     transition: all 0.15s;
@@ -494,55 +679,42 @@
   .browse-entry {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 5px 16px;
+    gap: 12px;
+    padding: 5px 18px;
     cursor: pointer;
     transition: background 0.1s;
-    font-size: 12px;
+    font-size: 11.5px;
     user-select: none;
+    border-left: 2px solid transparent;
   }
-  .browse-entry:hover { background: rgba(255,255,255,0.03); }
+  .browse-entry .browse-icon { display: flex; color: var(--text-muted); }
   .browse-entry.is-dir { color: var(--cyan); }
+  .browse-entry.is-dir .browse-icon { color: var(--cyan); }
   .browse-entry.is-file { color: var(--text-dim); }
-  .browse-entry.is-file:hover { color: var(--green); background: rgba(0,255,136,0.04); }
+  .browse-entry:hover { background: var(--green-glow); }
+  .browse-entry.is-file:hover { color: var(--green); border-left-color: var(--green); }
+  .browse-entry.is-file:hover .browse-icon { color: var(--green); }
 
-  .browse-icon { font-size: 13px; flex-shrink: 0; width: 18px; }
   .browse-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .browse-size { color: var(--text-muted); font-size: 10px; white-space: nowrap; min-width: 56px; text-align: right; }
   .browse-date { color: var(--text-muted); font-size: 10px; white-space: nowrap; min-width: 110px; text-align: right; }
 
   .browse-status {
-    padding: 5px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
     border-top: 1px solid var(--border);
-    font-size: 10px;
+    font-size: 10.5px;
     color: var(--text-muted);
     flex-shrink: 0;
   }
+  .browse-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .browse-status:empty { display: none; }
   .browse-msg { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 12px; }
   .browse-msg.error { color: var(--red); }
 
-  /* Key file picker */
-  .key-pick-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--input-bg);
-    border: 1px solid var(--border2);
-    border-radius: 3px;
-    padding: 4px 4px 4px 8px;
-    transition: border-color 0.2s;
-  }
-  .key-filename {
-    flex: 1;
-    font-size: 11px;
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .key-filename.loaded { color: var(--green); }
-
-  /* History panel */
+  /* ── History panel ──────────────────────────────────────────────────────── */
   .history-header {
     cursor: pointer;
     user-select: none;
@@ -552,48 +724,47 @@
     margin-bottom: 0;
   }
   .history-header.open { margin-bottom: 8px; }
-  .history-chevron { display: inline-block; transition: transform 0.2s; font-style: normal; }
+  .history-chevron { display: inline-flex; transition: transform 0.2s; }
   .history-chevron.collapsed { transform: rotate(-90deg); }
   .history-list { display: flex; flex-direction: column; gap: 1px; }
   .history-list.collapsed { display: none; }
   .history-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 4px 6px;
+    gap: 7px;
+    padding: 5px 6px;
     border-radius: 3px;
     cursor: pointer;
     transition: background 0.1s;
   }
-  .history-item:hover { background: rgba(255,255,255,0.05); }
+  .history-item:hover { background: var(--hover); }
   .history-badge {
-    font-size: 9px;
+    font-size: 8.5px;
     font-weight: 600;
-    padding: 1px 4px;
+    letter-spacing: 0.06em;
+    padding: 2px 5px;
     border-radius: 2px;
     flex-shrink: 0;
-    letter-spacing: 0.05em;
   }
-  .history-badge.remote { background: rgba(0,168,252,0.15); color: var(--cyan); }
+  .history-badge.remote { background: rgba(95,179,255,0.15); color: var(--cyan); }
   .history-badge.local  { background: var(--green-glow); color: var(--green); }
   .history-label {
     flex: 1;
-    font-size: 11px;
+    font-size: 10.5px;
     color: var(--text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
   }
-  .history-time { font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+  .history-time { font-size: 9.5px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
   .history-del {
     background: none;
     border: none;
     color: transparent;
     cursor: pointer;
-    font-size: 14px;
-    padding: 0 2px;
-    line-height: 1;
+    display: flex;
+    padding: 2px;
     flex-shrink: 0;
     transition: color 0.15s;
   }
@@ -601,41 +772,53 @@
   .history-del:hover { color: var(--red) !important; }
   .history-empty { font-size: 11px; color: var(--text-muted); padding: 2px 0; }
 
-  /* Source type toggle */
-  .source-toggle {
+  /* ── Log file display ───────────────────────────────────────────────────── */
+  .logfile-display {
     display: flex;
-    border: 1px solid var(--border2);
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
     border-radius: 4px;
-    overflow: hidden;
-  }
-  .src-btn {
-    flex: 1;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel2);
+    border: 1px solid var(--border);
     font-size: 11px;
-    padding: 6px 8px;
-    cursor: pointer;
-    transition: all 0.15s;
+    color: var(--text);
+    margin-bottom: 10px;
   }
-  .src-btn:not(:last-child) { border-right: 1px solid var(--border2); }
-  .src-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
-  .src-btn.active { background: var(--green-glow); color: var(--green); }
+  .logfile-display .ic { color: var(--text-muted); }
+  .logfile-display span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 </style>
 </head>
 <body>
 
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="i-menu" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-search" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+  <symbol id="i-close" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 16 16" fill="none"><path d="M9 2L3 9h4l-1 5 6-7H8l1-5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 16 16" fill="none"><rect x="4" y="4" width="8" height="8" rx="1" fill="currentColor"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 16 16" fill="none"><path d="M2 4.5C2 3.67 2.67 3 3.5 3h2.6c.4 0 .78.16 1.06.44L8.5 5h4c.83 0 1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5h-9C2.67 13 2 12.33 2 11.5v-7z" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="i-file" viewBox="0 0 16 16" fill="none"><path d="M3.5 2h6L13 5.5v8.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 2v3.5h4" stroke="currentColor" stroke-width="1.3"/></symbol>
+  <symbol id="i-up" viewBox="0 0 16 16" fill="none"><path d="M8 13V3M3 8l5-5 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-down" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 16 16" fill="none"><rect x="4" y="3" width="2.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="2.5" height="10" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 16 16" fill="none"><path d="M4 3v10l9-5-9-5z" fill="currentColor"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M11 5l1.5-1.5M3.5 12.5L5 11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 16 16" fill="none"><path d="M13 9.5A6 6 0 0 1 6.5 3a6 6 0 1 0 6.5 6.5z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
 <header>
-  <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">☰</button>
-  <div class="logo">REMOTE<span>TAIL</span></div>
+  <button class="icon-btn" id="sidebar-toggle" title="Toggle sidebar"><svg class="ic"><use href="#i-menu"></use></svg></button>
+  <div class="logo">REMOTE<i class="logo-dot"></i><span class="tail">TAIL</span></div>
   <div class="status-dot" id="status-dot"></div>
   <div id="status-text">Not connected</div>
   <div class="header-actions">
-    <button class="btn-sm" id="btn-theme" title="Switch to light theme">☀</button>
     <button class="btn-sm" id="btn-clear">Clear</button>
-    <button class="btn-sm" id="btn-copy">Copy All</button>
+    <button class="btn-sm" id="btn-copy">Copy all</button>
     <button class="btn-sm" id="btn-download">Download</button>
+    <button class="btn-sm icon-only" id="btn-theme" title="Switch to light theme"><svg class="ic"><use href="#i-sun"></use></svg></button>
   </div>
 </header>
 
@@ -644,43 +827,43 @@
 
     <div class="sidebar-section">
       <div class="section-label">Source</div>
-      <div class="source-toggle">
-        <button class="src-btn active" id="src-remote">Remote (SSH)</button>
-        <button class="src-btn" id="src-local">Local File</button>
+      <div class="seg">
+        <button class="seg-btn active" id="src-remote">Remote (SSH)</button>
+        <button class="seg-btn" id="src-local">Local file</button>
       </div>
     </div>
 
     <div id="remote-panel">
 
-    <!-- Always-visible: connection selector -->
+    <!-- Always-visible: connection picker -->
     <div class="sidebar-section">
-      <div class="section-label">Connection</div>
-      <div class="field" id="saved-configs-wrap" style="display:none">
-        <select id="config-select" style="width:100%"></select>
+      <div class="section-label">Saved connections</div>
+      <div class="conn-list" id="conn-list">
+        <div class="conn-empty">No saved connections</div>
       </div>
-      <div style="display:flex;gap:6px;margin-top:6px">
-        <button class="btn-sm" id="btn-new-config" style="flex:1">+ New</button>
-        <button class="btn-sm" id="btn-edit-config" style="flex:1" disabled>Edit</button>
-        <button class="btn-sm danger" id="btn-delete-config" title="Delete" disabled>✕</button>
+      <div class="conn-actions">
+        <button class="btn-sm" id="btn-new-config"><svg class="ic"><use href="#i-plus"></use></svg>New</button>
+        <button class="btn-sm" id="btn-edit-config" disabled>Edit</button>
+        <button class="btn-sm danger icon-only" id="btn-delete-config" title="Delete" disabled><svg class="ic"><use href="#i-close"></use></svg></button>
       </div>
     </div>
 
     <!-- Browse section: visible after a connection is selected -->
     <div id="browse-section" style="display:none">
       <div class="sidebar-section">
-        <div class="section-label">Log File</div>
-        <button class="connect-btn" id="btn-browse" style="margin-bottom:10px;letter-spacing:0.05em;font-size:11px">Browse Remote Files</button>
+        <div class="section-label">Log file</div>
+        <button class="btn-wide" id="btn-browse" style="margin-bottom:10px"><svg class="ic"><use href="#i-folder"></use></svg>Browse remote files</button>
         <div class="field">
-          <label>OR ENTER PATH MANUALLY</label>
+          <label>Or enter path manually</label>
           <input type="text" id="file-path" placeholder="/var/log/app/server.log" />
         </div>
         <div class="field">
-          <label>INITIAL LINES</label>
+          <label>Initial lines</label>
           <input type="number" id="tail-lines" value="100" min="1" max="5000" />
         </div>
       </div>
       <div class="sidebar-section">
-        <button class="connect-btn" id="connect-btn">⚡ Connect</button>
+        <button class="connect-btn" id="connect-btn"><svg class="ic"><use href="#i-zap"></use></svg>Connect</button>
       </div>
     </div>
 
@@ -689,25 +872,25 @@
 
       <div class="sidebar-section">
         <div class="field">
-          <label>CONFIG NAME</label>
+          <label>Config name</label>
           <input type="text" id="config-name" placeholder="e.g. Production" />
         </div>
       </div>
 
       <div class="sidebar-section">
-        <div class="section-label">SSH Connection</div>
+        <div class="section-label">SSH endpoint</div>
         <div class="row2">
           <div class="field">
-            <label>HOST</label>
+            <label>Host</label>
             <input type="text" id="host" placeholder="192.168.1.1" />
           </div>
-          <div class="field" style="max-width:70px">
-            <label>PORT</label>
+          <div class="field" style="max-width:74px">
+            <label>Port</label>
             <input type="number" id="port" placeholder="22" value="22" />
           </div>
         </div>
         <div class="field">
-          <label>USERNAME</label>
+          <label>Username</label>
           <input type="text" id="username" placeholder="ubuntu" />
         </div>
       </div>
@@ -715,21 +898,22 @@
       <div class="sidebar-section">
         <div class="section-label">Authentication</div>
         <div class="field">
-          <label>AUTH TYPE</label>
-          <select id="auth-type">
-            <option value="password">Password</option>
-            <option value="key">Private Key</option>
-          </select>
+          <label>Auth type</label>
+          <input type="hidden" id="auth-type" value="password" />
+          <div class="seg" id="auth-seg">
+            <button type="button" class="seg-btn active" data-auth="password">Password</button>
+            <button type="button" class="seg-btn" data-auth="key">Private key</button>
+          </div>
         </div>
         <div class="auth-section active" id="auth-password">
           <div class="field">
-            <label>PASSWORD</label>
+            <label>Password</label>
             <input type="password" id="password" placeholder="••••••••" />
           </div>
         </div>
         <div class="auth-section" id="auth-key">
           <div class="field">
-            <label>PRIVATE KEY (.pem / .ppk)</label>
+            <label>Private key (.pem / .ppk)</label>
             <div class="key-pick-row">
               <span class="key-filename" id="key-filename">No file selected</span>
               <button class="btn-sm" id="btn-pick-key">Pick file</button>
@@ -737,7 +921,7 @@
             <input type="file" id="private-key-file" accept=".pem,.ppk" style="display:none" />
           </div>
           <div class="field">
-            <label>PASSPHRASE (if any)</label>
+            <label>Passphrase (if any)</label>
             <input type="password" id="passphrase" placeholder="optional" />
           </div>
         </div>
@@ -756,28 +940,28 @@
 
     <div id="local-panel" style="display:none">
       <div class="sidebar-section">
-        <div class="section-label">Log File</div>
+        <div class="section-label">Log file</div>
         <div class="field">
-          <label>FILE PATH</label>
+          <label>File path</label>
           <div style="display:flex;gap:6px">
             <input type="text" id="local-file-path" placeholder="C:\logs\app.log" style="flex:1" />
             <button class="btn-sm" id="btn-browse-local">Browse</button>
           </div>
         </div>
         <div class="field">
-          <label>INITIAL LINES</label>
+          <label>Initial lines</label>
           <input type="number" id="local-tail-lines" value="100" min="1" max="5000" />
         </div>
       </div>
       <div class="sidebar-section">
-        <button class="connect-btn" id="local-connect-btn">⚡ Connect</button>
+        <button class="connect-btn" id="local-connect-btn"><svg class="ic"><use href="#i-zap"></use></svg>Connect</button>
       </div>
     </div>
 
     <div class="sidebar-section" id="history-section">
       <div class="section-label history-header open" id="history-header">
         <span>Recent</span>
-        <span class="history-chevron" id="history-chevron">▾</span>
+        <span class="history-chevron" id="history-chevron"><svg class="ic"><use href="#i-chev"></use></svg></span>
       </div>
       <div class="history-list" id="history-list">
         <div class="history-empty">No recent connections</div>
@@ -789,26 +973,33 @@
   <div class="log-panel">
     <div class="log-toolbar">
       <div class="search-wrap">
-        <span class="search-icon">⌕</span>
-        <input type="text" id="search" placeholder="Filter logs..." />
+        <span class="search-icon"><svg class="ic"><use href="#i-search"></use></svg></span>
+        <input type="text" id="search" placeholder="Filter visible lines..." />
       </div>
-      <span class="match-count" id="match-count"></span>
+      <span class="match-count" id="match-count">0 lines</span>
       <div class="toolbar-sep"></div>
+      <div class="pills">
+        <span class="pill pill-err"  id="pill-err">err <b>0</b></span>
+        <span class="pill pill-warn" id="pill-warn">warn <b>0</b></span>
+        <span class="pill pill-info" id="pill-info">info <b>0</b></span>
+        <span class="pill pill-dbg"  id="pill-dbg">dbg <b>0</b></span>
+      </div>
+      <span class="toolbar-spacer"></span>
       <label class="toggle-wrap" title="Auto-scroll to bottom">
         <div class="toggle on" id="autoscroll-toggle"></div>
         Auto-scroll
       </label>
-      <div class="toolbar-sep"></div>
       <label class="toggle-wrap" title="Wrap long lines">
         <div class="toggle on" id="wrap-toggle"></div>
         Wrap
       </label>
       <div class="toolbar-sep"></div>
-      <button class="btn-sm" id="btn-find-panel" title="Find in log (Ctrl+F)">Find</button>
+      <button class="btn-sm" id="btn-pause" title="Pause incoming lines"><svg class="ic"><use href="#i-pause"></use></svg>Pause</button>
+      <button class="btn-sm" id="btn-find-panel" title="Find in log (Ctrl+F)"><svg class="ic"><use href="#i-search"></use></svg>Find</button>
     </div>
 
     <div class="tab-bar" id="tab-bar">
-      <button class="btn-new-tab" id="btn-new-tab" title="New tab">+</button>
+      <button class="btn-new-tab" id="btn-new-tab" title="New tab"><svg class="ic"><use href="#i-plus"></use></svg></button>
     </div>
 
     <div class="log-container" id="log-container"></div>
@@ -819,7 +1010,9 @@
         <span class="find-title">Find in log</span>
         <input type="text" id="find-input" placeholder="Search pattern..." />
         <span class="find-count" id="find-count"></span>
-        <button class="find-close" id="find-close" title="Close (Esc)">×</button>
+        <button class="find-nav" id="find-prev" title="Previous match"><svg class="ic"><use href="#i-up"></use></svg></button>
+        <button class="find-nav" id="find-next" title="Next match"><svg class="ic"><use href="#i-down"></use></svg></button>
+        <button class="find-close" id="find-close" title="Close (Esc)"><svg class="ic"><use href="#i-close"></use></svg></button>
       </div>
       <div class="find-results" id="find-results">
         <div class="find-empty">Type to search in current tab's log</div>
@@ -829,6 +1022,7 @@
     <div class="log-footer">
       <span>Lines: <span id="line-count">0</span></span>
       <span>Size: <span id="byte-count">0 B</span></span>
+      <span>Stream: <span class="stream-ind" id="stream-ind">idle</span></span>
       <span class="footer-spacer"></span>
       <span id="last-update"></span>
     </div>
@@ -838,11 +1032,12 @@
 <div class="modal-overlay" id="browse-overlay">
   <div class="browse-modal">
     <div class="browse-modal-header">
-      <span class="browse-modal-title">Browse Remote Files</span>
-      <button class="browse-modal-close" id="browse-close">×</button>
+      <svg class="ic"><use href="#i-folder"></use></svg>
+      <span class="browse-modal-title">Browse remote files</span>
+      <button class="browse-modal-close" id="browse-close"><svg class="ic"><use href="#i-close"></use></svg></button>
     </div>
     <div class="browse-path-bar">
-      <button class="btn-sm" id="browse-up" title="Parent directory">↑</button>
+      <button class="btn-sm icon-only" id="browse-up" title="Parent directory"><svg class="ic"><use href="#i-up"></use></svg></button>
       <input type="text" id="browse-path-input" placeholder="/" />
       <button class="btn-sm" id="browse-go">Go</button>
     </div>
@@ -859,6 +1054,11 @@
 </div>
 
 <script>
+  // ── Icon helper ───────────────────────────────────────────────────────────
+  function svgIcon(name) {
+    return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"></use></svg>';
+  }
+
   // ── Elements ──────────────────────────────────────────────────────────────
   const statusDot    = document.getElementById('status-dot');
   const statusText   = document.getElementById('status-text');
@@ -870,16 +1070,22 @@
   const tabBar       = document.getElementById('tab-bar');
   const logContainer = document.getElementById('log-container');
   const newTabBtn    = document.getElementById('btn-new-tab');
+  const pauseBtn     = document.getElementById('btn-pause');
 
   // ── Tab state ─────────────────────────────────────────────────────────────
   let tabs = [];
   let activeTabId = null;
   let tabCounter = 0;
 
+  function emptyLevels() {
+    return { error: 0, warn: 0, info: 0, debug: 0, success: 0 };
+  }
+
   function makeEmptyState() {
     const d = document.createElement('div');
     d.className = 'empty-state';
-    d.innerHTML = '<div class="empty-icon">⬛</div><div class="empty-text">Configure connection and press Connect</div>';
+    d.innerHTML = '<div class="empty-icon"><svg class="ic ic-lg"><use href="#i-file"></use></svg></div>'
+      + '<div class="empty-text">Configure a connection and press Connect</div>';
     return d;
   }
 
@@ -896,6 +1102,8 @@
       ws: null, connected: false,
       allLogs: [], lineCount: 0, byteCount: 0,
       autoScroll: true, wrapLines: true,
+      paused: false, pauseBuffer: [],
+      levels: emptyLevels(),
       logEl, emptyEl,
     };
     tabs.push(tab);
@@ -931,24 +1139,25 @@
 
     renderTabBar();
     updateFooter(tab);
+    updatePills(tab);
+    updatePauseBtn();
 
     autoscrollToggle.classList.toggle('on', tab.autoScroll);
     wrapToggle.classList.toggle('on', tab.wrapLines);
 
     searchInput.value = '';
-    matchCount.textContent = '';
+    updateMatchCount(tab);
     if (document.getElementById('find-panel').classList.contains('open')) runFind();
 
     // Reset both buttons, then update the one for this tab's source
-    connectBtn.textContent = '⚡ Connect'; connectBtn.classList.remove('disconnect');
-    localConnectBtn.textContent = '⚡ Connect'; localConnectBtn.classList.remove('disconnect');
+    renderConnectBtn(connectBtn, false);
+    renderConnectBtn(localConnectBtn, false);
 
     const activeBtn = getConnectBtn(tab);
     if (tab.connected) {
       statusDot.className = 'status-dot connected';
       statusText.textContent = 'Connected';
-      activeBtn.textContent = '⏹ Disconnect';
-      activeBtn.classList.add('disconnect');
+      renderConnectBtn(activeBtn, true);
     } else {
       statusDot.className = 'status-dot';
       statusText.textContent = 'Not connected';
@@ -974,8 +1183,8 @@
       if (tabs.length > 1) {
         const closeBtn = document.createElement('button');
         closeBtn.className = 'tab-close';
-        closeBtn.textContent = '×';
         closeBtn.title = 'Close tab';
+        closeBtn.innerHTML = svgIcon('close');
         closeBtn.addEventListener('click', e => { e.stopPropagation(); closeTab(tab.id); });
         el.appendChild(closeBtn);
       }
@@ -987,8 +1196,15 @@
 
   newTabBtn.addEventListener('click', () => createTab());
 
+  // ── Connect button rendering ──────────────────────────────────────────────
+  function renderConnectBtn(btn, connected) {
+    btn.innerHTML = svgIcon(connected ? 'stop' : 'zap') + (connected ? 'Disconnect' : 'Connect');
+    btn.classList.toggle('disconnect', connected);
+  }
+
   // ── Configs (persisted to disk via server API) ───────────────────────────
   let _configs = {};
+  let selectedConfig = null;
 
   const localConnectBtn = document.getElementById('local-connect-btn');
 
@@ -1020,7 +1236,7 @@
 
   async function initConfigs() {
     try { _configs = await invoke('get_configs'); } catch { _configs = {}; }
-    refreshConfigSelect();
+    renderConnList();
     updateBrowseSection();
   }
 
@@ -1057,35 +1273,68 @@
     el.classList.toggle('loaded', !!privateKeyName);
   }
 
-  function refreshConfigSelect(selectName) {
-    const names = Object.keys(_configs);
-    const wrap   = document.getElementById('saved-configs-wrap');
-    const select = document.getElementById('config-select');
+  // Render the saved-connection cards.
+  function renderConnList(selectName) {
+    const list    = document.getElementById('conn-list');
     const editBtn = document.getElementById('btn-edit-config');
     const delBtn  = document.getElementById('btn-delete-config');
+    const names   = Object.keys(_configs);
 
-    wrap.style.display = names.length ? '' : 'none';
-    select.innerHTML = '';
+    if (selectName && names.includes(selectName)) selectedConfig = selectName;
+    if (selectedConfig && !names.includes(selectedConfig)) selectedConfig = null;
 
-    const empty = document.createElement('option');
-    empty.value = ''; empty.textContent = '— select —';
-    select.appendChild(empty);
+    list.innerHTML = '';
+    if (!names.length) {
+      list.innerHTML = '<div class="conn-empty">No saved connections</div>';
+    } else {
+      names.forEach(name => {
+        const cfg = _configs[name];
+        const card = document.createElement('div');
+        card.className = 'conn-card' + (name === selectedConfig ? ' active' : '');
 
-    names.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name; opt.textContent = name;
-      select.appendChild(opt);
-    });
+        const dot = document.createElement('span');
+        dot.className = 'conn-dot';
 
-    if (selectName && names.includes(selectName)) select.value = selectName;
+        const meta = document.createElement('div');
+        meta.className = 'conn-meta';
+        const nameEl = document.createElement('div');
+        nameEl.className = 'conn-name';
+        nameEl.textContent = name;
+        const subEl = document.createElement('div');
+        subEl.className = 'conn-sub';
+        subEl.textContent = (cfg.username || '?') + '@' + (cfg.host || '?');
+        meta.appendChild(nameEl);
+        meta.appendChild(subEl);
 
-    const hasSelection = !!select.value;
-    editBtn.disabled = !hasSelection;
-    delBtn.disabled  = !hasSelection;
+        card.appendChild(dot);
+        card.appendChild(meta);
+
+        if ((cfg.authType || 'password') === 'key') {
+          const key = document.createElement('span');
+          key.className = 'conn-key';
+          key.textContent = 'KEY';
+          card.appendChild(key);
+        }
+
+        card.addEventListener('click', () => selectConfig(name));
+        list.appendChild(card);
+      });
+    }
+
+    editBtn.disabled = !selectedConfig;
+    delBtn.disabled  = !selectedConfig;
+  }
+
+  function selectConfig(name) {
+    selectedConfig = name;
+    const cfg = _configs[name];
+    if (cfg) applyConfig(cfg);
+    renderConnList();
+    updateBrowseSection();
   }
 
   function updateBrowseSection() {
-    const hasConnection = !!document.getElementById('config-select').value;
+    const hasConnection = !!selectedConfig;
     const formOpen = document.getElementById('connection-form').style.display !== 'none';
     document.getElementById('browse-section').style.display =
       hasConnection && !formOpen ? '' : 'none';
@@ -1118,10 +1367,9 @@
   document.getElementById('btn-new-config').addEventListener('click', () => showForm('new'));
 
   document.getElementById('btn-edit-config').addEventListener('click', () => {
-    const name = document.getElementById('config-select').value;
-    if (!name || !_configs[name]) return;
-    document.getElementById('config-name').value = name;
-    applyConfig(_configs[name]);
+    if (!selectedConfig || !_configs[selectedConfig]) return;
+    document.getElementById('config-name').value = selectedConfig;
+    applyConfig(_configs[selectedConfig]);
     showForm('edit');
   });
 
@@ -1130,35 +1378,38 @@
     if (!name) { document.getElementById('config-name').focus(); return; }
     _configs[name] = getCurrentFormValues();
     saveAllConfigs(_configs);
-    refreshConfigSelect(name);
+    renderConnList(name);
     hideForm();
   });
 
   document.getElementById('btn-cancel-form').addEventListener('click', hideForm);
 
   document.getElementById('btn-delete-config').addEventListener('click', () => {
-    const name = document.getElementById('config-select').value;
-    if (!name) return;
-    if (!confirm(`Delete connection "${name}"?`)) return;
-    delete _configs[name];
+    if (!selectedConfig) return;
+    if (!confirm(`Delete connection "${selectedConfig}"?`)) return;
+    delete _configs[selectedConfig];
+    selectedConfig = null;
     saveAllConfigs(_configs);
-    refreshConfigSelect();
+    renderConnList();
     updateBrowseSection();
   });
 
-  document.getElementById('config-select').addEventListener('change', e => {
-    const cfg = _configs[e.target.value];
-    if (cfg) applyConfig(cfg);
-    const hasVal = !!e.target.value;
-    document.getElementById('btn-edit-config').disabled = !hasVal;
-    document.getElementById('btn-delete-config').disabled = !hasVal;
-    updateBrowseSection();
+  // ── Auth type toggle (segmented control over a hidden input) ──────────────
+  const authTypeInput = document.getElementById('auth-type');
+
+  document.querySelectorAll('#auth-seg .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      authTypeInput.value = btn.dataset.auth;
+      authTypeInput.dispatchEvent(new Event('change'));
+    });
   });
 
-  // ── Auth type toggle ──────────────────────────────────────────────────────
-  document.getElementById('auth-type').addEventListener('change', e => {
-    document.getElementById('auth-password').classList.toggle('active', e.target.value === 'password');
-    document.getElementById('auth-key').classList.toggle('active', e.target.value === 'key');
+  authTypeInput.addEventListener('change', e => {
+    const v = e.target.value;
+    document.getElementById('auth-password').classList.toggle('active', v === 'password');
+    document.getElementById('auth-key').classList.toggle('active', v === 'key');
+    document.querySelectorAll('#auth-seg .seg-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.auth === v));
   });
 
   // ── Sidebar toggle ────────────────────────────────────────────────────────
@@ -1187,8 +1438,45 @@
     tab.logEl.style.overflowX = tab.wrapLines ? '' : 'auto';
   });
 
+  // ── Pause / Resume incoming lines ─────────────────────────────────────────
+  function updatePauseBtn() {
+    const tab = getActiveTab();
+    if (!tab) {
+      pauseBtn.innerHTML = svgIcon('pause') + 'Pause';
+      pauseBtn.classList.remove('active');
+      return;
+    }
+    const n = tab.pauseBuffer.length;
+    if (tab.paused) {
+      pauseBtn.innerHTML = svgIcon('play') + (n ? `Resume · ${n}` : 'Resume');
+      pauseBtn.classList.add('active');
+    } else {
+      pauseBtn.innerHTML = svgIcon('pause') + 'Pause';
+      pauseBtn.classList.remove('active');
+    }
+  }
+
+  pauseBtn.addEventListener('click', () => {
+    const tab = getActiveTab();
+    if (!tab) return;
+    tab.paused = !tab.paused;
+    if (!tab.paused && tab.pauseBuffer.length) {
+      const buffered = tab.pauseBuffer.join('\n');
+      tab.pauseBuffer = [];
+      appendLog(tab, buffered);
+    }
+    updatePauseBtn();
+    updateFooter(tab);
+  });
+
   // ── Search / filter ───────────────────────────────────────────────────────
   searchInput.addEventListener('input', renderFilter);
+
+  function updateMatchCount(tab) {
+    if (!tab) { matchCount.textContent = ''; return; }
+    const q = searchInput.value.trim();
+    if (!q) matchCount.textContent = `${tab.lineCount} lines`;
+  }
 
   function renderFilter() {
     const tab = getActiveTab();
@@ -1214,7 +1502,9 @@
       }
     });
 
-    matchCount.textContent = q ? `${matches} match${matches !== 1 ? 'es' : ''}` : '';
+    matchCount.textContent = q
+      ? `${matches} visible · ${tab.lineCount} total`
+      : `${tab.lineCount} lines`;
   }
 
   function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -1256,8 +1546,10 @@
 
       const textEl = document.createElement('span');
       textEl.className = 'line-text';
-      if (isError) textEl.classList.add('level-error');
-      else if (!isStatus) textEl.classList.add(`level-${detectLevel(rawLine)}`);
+      let lvl = null;
+      if (isError) { lvl = 'error'; textEl.classList.add('level-error'); }
+      else if (!isStatus) { lvl = detectLevel(rawLine); textEl.classList.add(`level-${lvl}`); }
+      if (lvl && tab.levels) tab.levels[lvl] = (tab.levels[lvl] || 0) + 1;
       textEl.dataset.raw = rawLine;
       textEl.textContent = rawLine;
       if (!tab.wrapLines) { textEl.style.whiteSpace = 'nowrap'; textEl.style.overflow = 'hidden'; }
@@ -1279,15 +1571,29 @@
 
     if (tab.id === activeTabId) {
       updateFooter(tab);
+      updatePills(tab);
+      updateMatchCount(tab);
       if (tab.autoScroll) tab.logEl.scrollTop = tab.logEl.scrollHeight;
       if (document.getElementById('find-panel').classList.contains('open')) runFind();
     }
+  }
+
+  function updatePills(tab) {
+    const L = (tab && tab.levels) || emptyLevels();
+    document.querySelector('#pill-err b').textContent  = L.error || 0;
+    document.querySelector('#pill-warn b').textContent = L.warn || 0;
+    document.querySelector('#pill-info b').textContent = (L.info || 0) + (L.success || 0);
+    document.querySelector('#pill-dbg b').textContent  = L.debug || 0;
   }
 
   function updateFooter(tab) {
     document.getElementById('line-count').textContent = tab.lineCount;
     document.getElementById('byte-count').textContent = formatBytes(tab.byteCount);
     document.getElementById('last-update').textContent = tab.allLogs.length ? new Date().toLocaleTimeString() : '';
+    const si = document.getElementById('stream-ind');
+    if (tab.paused) { si.textContent = 'paused'; si.className = 'stream-ind paused'; }
+    else if (tab.connected) { si.textContent = 'live'; si.className = 'stream-ind live'; }
+    else { si.textContent = 'idle'; si.className = 'stream-ind'; }
   }
 
   function formatBytes(b) {
@@ -1360,7 +1666,7 @@
       return;
     }
 
-    const configName = document.getElementById('config-select').value;
+    const configName = selectedConfig;
     addHistory({ source: 'remote', configName, filePath, lines });
 
     // Name tab after connection
@@ -1390,9 +1696,8 @@
     tab.connected = false;
     if (tab.id === activeTabId) {
       setStatus('', 'Disconnected');
-      const btn = getConnectBtn(tab);
-      btn.textContent = '⚡ Connect';
-      btn.classList.remove('disconnect');
+      renderConnectBtn(getConnectBtn(tab), false);
+      updateFooter(tab);
     }
     renderTabBar();
   }
@@ -1405,9 +1710,13 @@
     tab.emptyEl = makeEmptyState();
     tab.logEl.appendChild(tab.emptyEl);
     tab.allLogs = []; tab.lineCount = 0; tab.byteCount = 0;
+    tab.levels = emptyLevels();
+    tab.pauseBuffer = [];
     updateFooter(tab);
-    matchCount.textContent = '';
+    updatePills(tab);
+    updatePauseBtn();
     searchInput.value = '';
+    updateMatchCount(tab);
   });
 
   document.getElementById('btn-copy').addEventListener('click', () => {
@@ -1567,7 +1876,7 @@
 
       const icon = document.createElement('span');
       icon.className = 'browse-icon';
-      icon.textContent = entry.isDir ? '▸' : '·';
+      icon.innerHTML = svgIcon(entry.isDir ? 'folder' : 'file');
 
       const name = document.createElement('span');
       name.className = 'browse-name';
@@ -1609,9 +1918,13 @@
   const findInput   = document.getElementById('find-input');
   const findCount   = document.getElementById('find-count');
   const findResults = document.getElementById('find-results');
+  let findMatches   = [];
+  let findCurIdx    = 0;
 
   document.getElementById('btn-find-panel').addEventListener('click', () => toggleFindPanel());
   document.getElementById('find-close').addEventListener('click', () => findPanel.classList.remove('open'));
+  document.getElementById('find-prev').addEventListener('click', () => findStep(-1));
+  document.getElementById('find-next').addEventListener('click', () => findStep(1));
 
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
@@ -1629,7 +1942,10 @@
     if (open) { findInput.focus(); findInput.select(); runFind(); }
   }
 
-  findInput.addEventListener('input', runFind);
+  findInput.addEventListener('input', () => { findCurIdx = 0; runFind(); });
+  findInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); findStep(e.shiftKey ? -1 : 1); }
+  });
 
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -1642,6 +1958,7 @@
     if (!q || !tab) {
       findResults.innerHTML = '<div class="find-empty">Type to search in current tab\'s log</div>';
       findCount.textContent = '';
+      findMatches = [];
       return;
     }
 
@@ -1651,22 +1968,22 @@
         matches.push({ ...entry, lineNum: i + 1 });
       }
     });
-
-    findCount.textContent = matches.length
-      ? `${matches.length} match${matches.length !== 1 ? 'es' : ''}`
-      : 'No matches';
+    findMatches = matches;
 
     if (!matches.length) {
       findResults.innerHTML = '<div class="find-empty">No matches found</div>';
+      findCount.textContent = 'No matches';
       return;
     }
+
+    if (findCurIdx >= matches.length) findCurIdx = 0;
 
     const frag = document.createDocumentFragment();
     const re = new RegExp(`(${escapeRe(q)})`, 'gi');
 
-    matches.forEach(entry => {
+    matches.forEach((entry, i) => {
       const div = document.createElement('div');
-      div.className = 'find-item';
+      div.className = 'find-item' + (i === findCurIdx ? ' active' : '');
 
       const numEl = document.createElement('span');
       numEl.className = 'find-item-num';
@@ -1678,12 +1995,31 @@
 
       div.appendChild(numEl);
       div.appendChild(textEl);
-      div.addEventListener('click', () => scrollToLine(tab, entry.lineNum));
+      div.addEventListener('click', () => { findCurIdx = i; highlightFindCur(true); });
       frag.appendChild(div);
     });
 
     findResults.innerHTML = '';
     findResults.appendChild(frag);
+    findCount.textContent = `${findCurIdx + 1} / ${matches.length}`;
+  }
+
+  function findStep(dir) {
+    if (!findMatches.length) return;
+    findCurIdx = (findCurIdx + dir + findMatches.length) % findMatches.length;
+    highlightFindCur(true);
+  }
+
+  function highlightFindCur(scroll) {
+    const items = findResults.querySelectorAll('.find-item');
+    items.forEach((el, i) => el.classList.toggle('active', i === findCurIdx));
+    findCount.textContent = findMatches.length ? `${findCurIdx + 1} / ${findMatches.length}` : 'No matches';
+    const active = items[findCurIdx];
+    if (active) active.scrollIntoView({ block: 'nearest' });
+    if (scroll && findMatches[findCurIdx]) {
+      const tab = getActiveTab();
+      if (tab) scrollToLine(tab, findMatches[findCurIdx].lineNum);
+    }
   }
 
   function scrollToLine(tab, lineNum) {
@@ -1738,7 +2074,7 @@
     currentTheme = theme;
     document.documentElement.setAttribute('data-theme', theme);
     const btn = document.getElementById('btn-theme');
-    btn.textContent = theme === 'dark' ? '☀' : '☾';
+    btn.querySelector('use').setAttribute('href', theme === 'dark' ? '#i-sun' : '#i-moon');
     btn.title = theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
     if (save) {
       invoke('save_prefs', { data: { theme } }).catch(() => {});
@@ -1800,7 +2136,7 @@
 
       const badge = document.createElement('span');
       badge.className = 'history-badge ' + (item.source === 'local' ? 'local' : 'remote');
-      badge.textContent = item.source === 'local' ? 'loc' : 'ssh';
+      badge.textContent = item.source === 'local' ? 'FILE' : 'SSH';
 
       const label = document.createElement('span');
       label.className = 'history-label';
@@ -1817,7 +2153,7 @@
       const del = document.createElement('button');
       del.className = 'history-del';
       del.title = 'Remove';
-      del.textContent = '×';
+      del.innerHTML = svgIcon('close');
       del.addEventListener('click', e => {
         e.stopPropagation();
         _history = _history.filter(h => h.id !== item.id);
@@ -1952,14 +2288,18 @@
     if (!tab) return;
 
     if (type === 'log') {
-      appendLog(tab, text);
+      if (tab.paused) {
+        tab.pauseBuffer.push(text);
+        if (tab.id === activeTabId) updatePauseBtn();
+      } else {
+        appendLog(tab, text);
+      }
     } else if (type === 'status') {
       tab.connected = true;
       if (tab.id === activeTabId) {
         setStatus('connected', text);
-        const btn = getConnectBtn(tab);
-        btn.textContent = '⏹ Disconnect';
-        btn.classList.add('disconnect');
+        renderConnectBtn(getConnectBtn(tab), true);
+        updateFooter(tab);
       }
       appendLog(tab, '▶ ' + text, true);
       renderTabBar();
@@ -1970,9 +2310,8 @@
       tab.connected = false;
       if (tab.id === activeTabId) {
         setStatus('', 'Disconnected');
-        const btn = getConnectBtn(tab);
-        btn.textContent = '⚡ Connect';
-        btn.classList.remove('disconnect');
+        renderConnectBtn(getConnectBtn(tab), false);
+        updateFooter(tab);
       }
       renderTabBar();
     }
