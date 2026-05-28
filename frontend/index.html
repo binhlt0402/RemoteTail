@@ -24,7 +24,7 @@
     --text-dim: #b5bac1;
     --text-muted: #80848e;
     --input-bg: #1c1d20;
-    --scrollbar: #1e1f22;
+    --scrollbar: #45484e;
   }
 
   [data-theme="light"] {
@@ -439,6 +439,45 @@
   }
   .btn-new-tab:hover { color: var(--green); }
 
+  /* ── Split view ─────────────────────────────────────────────────────────── */
+  .view-container { flex: 1; display: flex; overflow: hidden; }
+  .view-container.split-h { flex-direction: row; }
+  .view-container.split-v { flex-direction: column; }
+
+  .view-pane { display: flex; flex-direction: column; overflow: hidden; flex: 1; min-width: 0; min-height: 0; }
+
+  .view-divider { background: var(--border); flex-shrink: 0; transition: background 0.15s; }
+  .view-divider:hover, .view-divider.dragging { background: var(--green); }
+  .view-container.split-h > .view-divider { width: 4px; cursor: col-resize; }
+  .view-container.split-v > .view-divider { height: 4px; cursor: row-resize; }
+
+  /* ── Context menu ──────────────────────────────────────────────────────── */
+  .ctx-menu {
+    position: fixed;
+    z-index: 9999;
+    background: var(--panel);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+    padding: 4px 0;
+    min-width: 170px;
+    display: none;
+    user-select: none;
+  }
+  .ctx-menu.open { display: block; }
+  .ctx-item {
+    padding: 7px 14px;
+    font-size: 11.5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.1s, color 0.1s;
+  }
+  .ctx-item:hover { background: var(--hover); color: var(--text); }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
   /* ── Log container ──────────────────────────────────────────────────────── */
   .log-container { flex: 1; overflow: hidden; position: relative; background: var(--bg); }
 
@@ -802,6 +841,8 @@
   <symbol id="i-file" viewBox="0 0 16 16" fill="none"><path d="M3.5 2h6L13 5.5v8.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5v-12a.5.5 0 0 1 .5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9 2v3.5h4" stroke="currentColor" stroke-width="1.3"/></symbol>
   <symbol id="i-up" viewBox="0 0 16 16" fill="none"><path d="M8 13V3M3 8l5-5 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-down" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-left" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M8 3l-5 5 5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-right" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M8 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-chev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-pause" viewBox="0 0 16 16" fill="none"><rect x="4" y="3" width="2.5" height="10" fill="currentColor"/><rect x="9.5" y="3" width="2.5" height="10" fill="currentColor"/></symbol>
   <symbol id="i-play" viewBox="0 0 16 16" fill="none"><path d="M4 3v10l9-5-9-5z" fill="currentColor"/></symbol>
@@ -998,11 +1039,14 @@
       <button class="btn-sm" id="btn-find-panel" title="Find in log (Ctrl+F)"><svg class="ic"><use href="#i-search"></use></svg>Find</button>
     </div>
 
-    <div class="tab-bar" id="tab-bar">
-      <button class="btn-new-tab" id="btn-new-tab" title="New tab"><svg class="ic"><use href="#i-plus"></use></svg></button>
+    <div class="view-container" id="view-container">
+      <div class="view-pane" id="pane-0">
+        <div class="tab-bar" id="tab-bar-0">
+          <button class="btn-new-tab" id="btn-new-tab" title="New tab"><svg class="ic"><use href="#i-plus"></use></svg></button>
+        </div>
+        <div class="log-container" id="log-container-0"></div>
+      </div>
     </div>
-
-    <div class="log-container" id="log-container"></div>
 
     <div class="find-panel" id="find-panel">
       <div class="find-resize" id="find-resize"></div>
@@ -1053,11 +1097,16 @@
   </div>
 </div>
 
+<div class="ctx-menu" id="ctx-menu"></div>
+
 <script>
   // ── Icon helper ───────────────────────────────────────────────────────────
   function svgIcon(name) {
     return '<svg class="ic" aria-hidden="true"><use href="#i-' + name + '"></use></svg>';
   }
+
+  // ── Disable default right-click context menu ─────────────────────────────
+  document.addEventListener('contextmenu', e => e.preventDefault());
 
   // ── Elements ──────────────────────────────────────────────────────────────
   const statusDot    = document.getElementById('status-dot');
@@ -1067,10 +1116,19 @@
   const matchCount   = document.getElementById('match-count');
   const autoscrollToggle = document.getElementById('autoscroll-toggle');
   const wrapToggle   = document.getElementById('wrap-toggle');
-  const tabBar       = document.getElementById('tab-bar');
-  const logContainer = document.getElementById('log-container');
+  const viewContainer = document.getElementById('view-container');
   const newTabBtn    = document.getElementById('btn-new-tab');
   const pauseBtn     = document.getElementById('btn-pause');
+  const ctxMenu      = document.getElementById('ctx-menu');
+
+  // ── Split-pane helpers ────────────────────────────────────────────────────
+  function getPaneEl(paneId)         { return document.getElementById('pane-' + paneId); }
+  function getTabBarEl(paneId)       { return document.getElementById('tab-bar-' + paneId); }
+  function getLogContainerEl(paneId) { return document.getElementById('log-container-' + paneId); }
+  function getTabsInPane(paneId)     { return tabs.filter(t => t.pane === paneId); }
+
+  let splitDir = null;            // null | 'h' | 'v'
+  let paneActiveTabId = [null, null];  // per-pane active tab
 
   // ── Tab state ─────────────────────────────────────────────────────────────
   let tabs = [];
@@ -1089,16 +1147,17 @@
     return d;
   }
 
-  function createTab(name) {
+  function createTab(name, pane = 0) {
     const id = ++tabCounter;
     const logEl = document.createElement('div');
     logEl.className = 'log-output';
     const emptyEl = makeEmptyState();
     logEl.appendChild(emptyEl);
-    logContainer.appendChild(logEl);
+    getLogContainerEl(pane).appendChild(logEl);
 
     const tab = {
       id, name: name || `Tab ${id}`,
+      pane,
       ws: null, connected: false,
       allLogs: [], lineCount: 0, byteCount: 0,
       autoScroll: true, wrapLines: true,
@@ -1116,9 +1175,14 @@
     if (tabs.length <= 1) return;
     const tab = getTab(id);
     if (!tab) return;
+    const pane = tab.pane;
     disconnectTab(tab);
     tab.logEl.remove();
     tabs = tabs.filter(t => t.id !== id);
+    // If pane 1 is now empty, collapse it
+    if (pane === 1 && getTabsInPane(1).length === 0) {
+      removePane1();
+    }
     if (activeTabId === id) {
       switchTab(tabs[tabs.length - 1].id);
     } else {
@@ -1130,11 +1194,14 @@
   function getActiveTab() { return getTab(activeTabId); }
 
   function switchTab(id) {
-    activeTabId = id;
     const tab = getTab(id);
     if (!tab) return;
 
-    tabs.forEach(t => t.logEl.classList.remove('active'));
+    activeTabId = id;
+    paneActiveTabId[tab.pane] = id;
+
+    // Only toggle visibility within this pane; other pane keeps its active tab
+    tabs.filter(t => t.pane === tab.pane).forEach(t => t.logEl.classList.remove('active'));
     tab.logEl.classList.add('active');
 
     renderTabBar();
@@ -1164,11 +1231,18 @@
     }
   }
 
-  function renderTabBar() {
-    tabBar.querySelectorAll('.tab').forEach(el => el.remove());
-    tabs.forEach(tab => {
+  function renderPaneTabs(paneId) {
+    const bar = getTabBarEl(paneId);
+    if (!bar) return;
+    bar.querySelectorAll('.tab').forEach(el => el.remove());
+    const newBtn = bar.querySelector('.btn-new-tab');
+    getTabsInPane(paneId).forEach(tab => {
       const el = document.createElement('div');
-      el.className = 'tab' + (tab.id === activeTabId ? ' active' : '') + (tab.connected ? ' connected' : '');
+      el.className = 'tab'
+        + (tab.id === activeTabId ? ' active' : '')
+        + (tab.connected ? ' connected' : '');
+      if (tab.id === paneActiveTabId[paneId] && tab.id !== activeTabId)
+        el.classList.add('pane-active');
       el.dataset.id = tab.id;
 
       const dot = document.createElement('span');
@@ -1190,11 +1264,180 @@
       }
 
       el.addEventListener('click', () => switchTab(tab.id));
-      tabBar.insertBefore(el, newTabBtn);
+      el.addEventListener('contextmenu', e => showTabCtxMenu(e, tab.id));
+      bar.insertBefore(el, newBtn);
     });
   }
 
-  newTabBtn.addEventListener('click', () => createTab());
+  function renderTabBar() {
+    renderPaneTabs(0);
+    if (splitDir) renderPaneTabs(1);
+  }
+
+  newTabBtn.addEventListener('click', () => createTab(undefined, 0));
+
+  // ── Split-pane management ────────────────────────────────────────────────
+  function ensurePane1(dir) {
+    if (splitDir === dir && document.getElementById('pane-1')) return;
+    // If direction changed, destroy and recreate pane-1
+    if (document.getElementById('pane-1') && splitDir !== dir) {
+      const movedTabs = getTabsInPane(1);
+      movedTabs.forEach(t => {
+        t.logEl.classList.remove('active');
+        getLogContainerEl(0).appendChild(t.logEl);
+        t.pane = 0;
+      });
+      removePane1();
+    }
+    splitDir = dir;
+    viewContainer.className = 'view-container split-' + dir;
+
+    const divider = document.createElement('div');
+    divider.className = 'view-divider';
+    divider.id = 'view-divider';
+    viewContainer.appendChild(divider);
+
+    const pane1 = document.createElement('div');
+    pane1.className = 'view-pane';
+    pane1.id = 'pane-1';
+
+    const bar1 = document.createElement('div');
+    bar1.className = 'tab-bar';
+    bar1.id = 'tab-bar-1';
+    const newBtn1 = document.createElement('button');
+    newBtn1.className = 'btn-new-tab';
+    newBtn1.title = 'New tab';
+    newBtn1.innerHTML = svgIcon('plus');
+    newBtn1.addEventListener('click', () => createTab(undefined, 1));
+    bar1.appendChild(newBtn1);
+
+    const lc1 = document.createElement('div');
+    lc1.className = 'log-container';
+    lc1.id = 'log-container-1';
+
+    pane1.appendChild(bar1);
+    pane1.appendChild(lc1);
+    viewContainer.appendChild(pane1);
+
+    setupDividerDrag(divider, dir);
+  }
+
+  function removePane1() {
+    const pane0 = getPaneEl(0);
+    if (pane0) { pane0.style.flex = ''; pane0.style.width = ''; pane0.style.height = ''; }
+    document.getElementById('pane-1')?.remove();
+    document.getElementById('view-divider')?.remove();
+    splitDir = null;
+    paneActiveTabId[1] = null;
+    viewContainer.className = 'view-container';
+  }
+
+  function moveTabToPane(tabId, targetPane, dir) {
+    const tab = getTab(tabId);
+    if (!tab || tab.pane === targetPane) return;
+    const srcPane = tab.pane;
+
+    // Don't leave pane 0 empty — unless changing split direction brings pane-1 tabs back
+    const dirChanging = targetPane === 1 && splitDir !== null && splitDir !== dir;
+    if (srcPane === 0 && getTabsInPane(0).length <= 1 && !dirChanging) return;
+
+    if (targetPane === 1) ensurePane1(dir);
+
+    getLogContainerEl(targetPane).appendChild(tab.logEl);
+    tab.pane = targetPane;
+
+    // If moved tab was the pane-active in src pane, pick a new one
+    if (paneActiveTabId[srcPane] === tabId) {
+      const remaining = getTabsInPane(srcPane);
+      const next = remaining[remaining.length - 1];
+      if (next) {
+        paneActiveTabId[srcPane] = next.id;
+        next.logEl.classList.add('active');
+      } else {
+        paneActiveTabId[srcPane] = null;
+      }
+    }
+
+    // If src pane 1 is now empty, collapse it
+    if (srcPane === 1 && getTabsInPane(1).length === 0) removePane1();
+
+    tab.logEl.classList.remove('active');
+    switchTab(tabId);
+  }
+
+  function setupDividerDrag(divider, dir) {
+    let dragging = false, startPos = 0, startSize = 0;
+    divider.addEventListener('mousedown', e => {
+      e.preventDefault();
+      dragging = true;
+      divider.classList.add('dragging');
+      const pane0 = getPaneEl(0);
+      if (dir === 'h') {
+        startPos = e.clientX;
+        startSize = pane0.getBoundingClientRect().width;
+      } else {
+        startPos = e.clientY;
+        startSize = pane0.getBoundingClientRect().height;
+      }
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const pane0 = getPaneEl(0);
+      const delta = dir === 'h' ? e.clientX - startPos : e.clientY - startPos;
+      const newSize = Math.max(120, startSize + delta);
+      pane0.style.flex = 'none';
+      if (dir === 'h') pane0.style.width = newSize + 'px';
+      else pane0.style.height = newSize + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (dragging) { dragging = false; divider.classList.remove('dragging'); }
+    });
+  }
+
+  // ── Tab context menu ─────────────────────────────────────────────────────
+  let ctxTabId = null;
+
+  function showTabCtxMenu(e, tabId) {
+    e.preventDefault();
+    e.stopPropagation();
+    ctxTabId = tabId;
+    const tab = getTab(tabId);
+    ctxMenu.innerHTML = '';
+
+    if (tab.pane === 0) {
+      if (getTabsInPane(0).length > 1) {
+        addCtxItem(svgIcon('right') + ' Move to right panel',  () => moveTabToPane(tabId, 1, 'h'));
+        addCtxItem(svgIcon('down')  + ' Move to bottom panel', () => moveTabToPane(tabId, 1, 'v'));
+      }
+    } else {
+      if (splitDir === 'h') {
+        addCtxItem(svgIcon('left') + ' Move to left panel', () => moveTabToPane(tabId, 0, null));
+      } else {
+        addCtxItem(svgIcon('up') + ' Move to top panel', () => moveTabToPane(tabId, 0, null));
+      }
+    }
+
+    ctxMenu.classList.add('open');
+    let x = e.clientX, y = e.clientY;
+    ctxMenu.style.left = x + 'px';
+    ctxMenu.style.top = y + 'px';
+    requestAnimationFrame(() => {
+      const r = ctxMenu.getBoundingClientRect();
+      if (r.right > window.innerWidth)   ctxMenu.style.left = (x - r.width) + 'px';
+      if (r.bottom > window.innerHeight) ctxMenu.style.top  = (y - r.height) + 'px';
+    });
+  }
+
+  function addCtxItem(html, action) {
+    const item = document.createElement('div');
+    item.className = 'ctx-item';
+    item.innerHTML = html;
+    item.addEventListener('click', () => { ctxMenu.classList.remove('open'); action(); });
+    ctxMenu.appendChild(item);
+  }
+
+  document.addEventListener('click', () => ctxMenu.classList.remove('open'));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') ctxMenu.classList.remove('open'); });
 
   // ── Connect button rendering ──────────────────────────────────────────────
   function renderConnectBtn(btn, connected) {
