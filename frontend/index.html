@@ -2314,6 +2314,7 @@
       if (!entry.isStatus && entry.text.toLowerCase().includes(q))
         matches.push({ ...entry, lineNum: i + 1 });
     });
+    matches.reverse();
     state.matches = matches;
 
     if (!matches.length) {
