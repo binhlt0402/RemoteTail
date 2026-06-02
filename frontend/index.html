@@ -1812,11 +1812,15 @@
 
     tab.logEl.appendChild(frag);
 
+    // Auto-scroll for any visible tab (active in its pane), not just the globally active one
+    if (tab.autoScroll && tab.logEl.classList.contains('active')) {
+      tab.logEl.scrollTop = tab.logEl.scrollHeight;
+    }
+
     if (tab.id === activeTabId) {
       updateFooter(tab);
       updatePills(tab);
       updateMatchCount(tab);
-      if (tab.autoScroll) tab.logEl.scrollTop = tab.logEl.scrollHeight;
       if (document.getElementById('find-panel').classList.contains('open')) runFind();
     }
   }
