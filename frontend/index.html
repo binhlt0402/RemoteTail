@@ -1436,9 +1436,9 @@
 
     if (tab.pane === 0) {
       if (getTabsInPane(0).length > 1)
-        addCtxItem(svgIcon('down') + ' Move to bottom panel', () => moveTabToPane(tabId, 1, 'v'));
+        addCtxItem(svgIcon('right') + ' Move to right panel', () => moveTabToPane(tabId, 1, 'h'));
     } else {
-      addCtxItem(svgIcon('up') + ' Move to top panel', () => moveTabToPane(tabId, 0, null));
+      addCtxItem(svgIcon('left') + ' Move to left panel', () => moveTabToPane(tabId, 0, null));
     }
 
     ctxMenu.classList.add('open');
