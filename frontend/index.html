@@ -475,6 +475,9 @@
   .view-container.split-h > .view-divider { width: 4px; cursor: col-resize; }
   .view-container.split-v > .view-divider { height: 4px; cursor: row-resize; }
 
+  .view-pane { outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.15s; }
+  .view-pane.pane-focused { outline-color: var(--green); }
+
   /* ── Context menu ──────────────────────────────────────────────────────── */
   .ctx-menu {
     position: fixed;
@@ -1152,6 +1155,22 @@
   let splitDir = null;            // null | 'h' | 'v'
   let paneActiveTabId = [null, null];  // per-pane active tab
 
+  function updatePaneFocus(focusedPane) {
+    [0, 1].forEach(p => {
+      const el = getPaneEl(p);
+      if (el) el.classList.toggle('pane-focused', p === focusedPane);
+    });
+  }
+
+  function activatePaneOnClick(paneId) {
+    const pane = getPaneEl(paneId);
+    if (!pane) return;
+    pane.addEventListener('mousedown', () => {
+      const tabId = paneActiveTabId[paneId];
+      if (tabId !== null && tabId !== activeTabId) switchTab(tabId);
+    });
+  }
+
   // ── Tab state ─────────────────────────────────────────────────────────────
   let tabs = [];
   let activeTabId = null;
@@ -1221,6 +1240,7 @@
 
     activeTabId = id;
     paneActiveTabId[tab.pane] = id;
+    updatePaneFocus(tab.pane);
 
     // Only toggle visibility within this pane; other pane keeps its active tab
     tabs.filter(t => t.pane === tab.pane).forEach(t => t.logEl.classList.remove('active'));
@@ -1297,6 +1317,7 @@
   }
 
   newTabBtn.addEventListener('click', () => createTab(undefined, 0));
+  activatePaneOnClick(0);
 
   // ── Split-pane management ────────────────────────────────────────────────
   function ensurePane1(dir) {
@@ -1364,6 +1385,7 @@
     pane1.appendChild(fp1);
     viewContainer.appendChild(pane1);
     setupFindPane(1);
+    activatePaneOnClick(1);
 
     setupDividerDrag(divider, dir);
   }
