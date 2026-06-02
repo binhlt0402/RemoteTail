@@ -339,11 +339,35 @@
     flex-shrink: 0;
   }
 
-  .search-wrap { position: relative; flex: 1; min-width: 120px; max-width: 380px; }
-  .search-wrap input { padding-left: 30px; font-size: 12px; height: 28px; }
-  .search-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--text-muted); display: flex; }
-  .match-count { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
   .toolbar-sep { width: 1px; height: 16px; background: var(--border2); flex-shrink: 0; }
+
+  /* ── Per-pane search bar ────────────────────────────────────────────────── */
+  .pane-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel2);
+    flex-shrink: 0;
+  }
+  .pane-search-icon { display: flex; color: var(--text-muted); flex-shrink: 0; }
+  .pane-search-input {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 11px;
+    padding: 3px 8px;
+    height: 24px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .pane-search-input:focus { border-color: var(--green); }
+  .pane-search-input::placeholder { color: var(--text-muted); }
+  .pane-match-count { font-size: 10px; color: var(--text-muted); white-space: nowrap; min-width: 64px; text-align: right; }
   .toolbar-spacer { flex: 1; }
 
   /* ── Level facet pills ──────────────────────────────────────────────────── */
@@ -1013,12 +1037,6 @@
 
   <div class="log-panel">
     <div class="log-toolbar">
-      <div class="search-wrap">
-        <span class="search-icon"><svg class="ic"><use href="#i-search"></use></svg></span>
-        <input type="text" id="search" placeholder="Filter visible lines..." />
-      </div>
-      <span class="match-count" id="match-count">0 lines</span>
-      <div class="toolbar-sep"></div>
       <div class="pills">
         <span class="pill pill-err"  id="pill-err">err <b>0</b></span>
         <span class="pill pill-warn" id="pill-warn">warn <b>0</b></span>
@@ -1043,6 +1061,11 @@
       <div class="view-pane" id="pane-0">
         <div class="tab-bar" id="tab-bar-0">
           <button class="btn-new-tab" id="btn-new-tab" title="New tab"><svg class="ic"><use href="#i-plus"></use></svg></button>
+        </div>
+        <div class="pane-search-bar">
+          <span class="pane-search-icon"><svg class="ic"><use href="#i-search"></use></svg></span>
+          <input type="text" id="pane-search-0" class="pane-search-input" placeholder="Filter lines in this panel..." />
+          <span class="pane-match-count" id="pane-match-0"></span>
         </div>
         <div class="log-container" id="log-container-0"></div>
       </div>
@@ -1112,8 +1135,6 @@
   const statusDot    = document.getElementById('status-dot');
   const statusText   = document.getElementById('status-text');
   const connectBtn   = document.getElementById('connect-btn');
-  const searchInput  = document.getElementById('search');
-  const matchCount   = document.getElementById('match-count');
   const autoscrollToggle = document.getElementById('autoscroll-toggle');
   const wrapToggle   = document.getElementById('wrap-toggle');
   const viewContainer = document.getElementById('view-container');
@@ -1122,10 +1143,12 @@
   const ctxMenu      = document.getElementById('ctx-menu');
 
   // ── Split-pane helpers ────────────────────────────────────────────────────
-  function getPaneEl(paneId)         { return document.getElementById('pane-' + paneId); }
-  function getTabBarEl(paneId)       { return document.getElementById('tab-bar-' + paneId); }
-  function getLogContainerEl(paneId) { return document.getElementById('log-container-' + paneId); }
-  function getTabsInPane(paneId)     { return tabs.filter(t => t.pane === paneId); }
+  function getPaneEl(paneId)          { return document.getElementById('pane-' + paneId); }
+  function getTabBarEl(paneId)        { return document.getElementById('tab-bar-' + paneId); }
+  function getLogContainerEl(paneId)  { return document.getElementById('log-container-' + paneId); }
+  function getPaneSearchInput(paneId) { return document.getElementById('pane-search-' + paneId); }
+  function getPaneMatchEl(paneId)     { return document.getElementById('pane-match-' + paneId); }
+  function getTabsInPane(paneId)      { return tabs.filter(t => t.pane === paneId); }
 
   let splitDir = null;            // null | 'h' | 'v'
   let paneActiveTabId = [null, null];  // per-pane active tab
@@ -1212,8 +1235,7 @@
     autoscrollToggle.classList.toggle('on', tab.autoScroll);
     wrapToggle.classList.toggle('on', tab.wrapLines);
 
-    searchInput.value = '';
-    updateMatchCount(tab);
+    renderPaneFilter(tab.pane);
     if (document.getElementById('find-panel').classList.contains('open')) runFind();
 
     // Reset both buttons, then update the one for this tab's source
@@ -1311,11 +1333,18 @@
     newBtn1.addEventListener('click', () => createTab(undefined, 1));
     bar1.appendChild(newBtn1);
 
+    const sb1 = document.createElement('div');
+    sb1.className = 'pane-search-bar';
+    sb1.innerHTML = `<span class="pane-search-icon">${svgIcon('search')}</span>`
+      + `<input type="text" id="pane-search-1" class="pane-search-input" placeholder="Filter lines in this panel..." />`
+      + `<span class="pane-match-count" id="pane-match-1"></span>`;
+
     const lc1 = document.createElement('div');
     lc1.className = 'log-container';
     lc1.id = 'log-container-1';
 
     pane1.appendChild(bar1);
+    pane1.appendChild(sb1);
     pane1.appendChild(lc1);
     viewContainer.appendChild(pane1);
 
@@ -1343,6 +1372,7 @@
 
     if (targetPane === 1) ensurePane1(dir);
 
+    clearPaneFilter(tab);
     getLogContainerEl(targetPane).appendChild(tab.logEl);
     tab.pane = targetPane;
 
@@ -1405,16 +1435,10 @@
     ctxMenu.innerHTML = '';
 
     if (tab.pane === 0) {
-      if (getTabsInPane(0).length > 1) {
-        addCtxItem(svgIcon('right') + ' Move to right panel',  () => moveTabToPane(tabId, 1, 'h'));
-        addCtxItem(svgIcon('down')  + ' Move to bottom panel', () => moveTabToPane(tabId, 1, 'v'));
-      }
+      if (getTabsInPane(0).length > 1)
+        addCtxItem(svgIcon('down') + ' Move to bottom panel', () => moveTabToPane(tabId, 1, 'v'));
     } else {
-      if (splitDir === 'h') {
-        addCtxItem(svgIcon('left') + ' Move to left panel', () => moveTabToPane(tabId, 0, null));
-      } else {
-        addCtxItem(svgIcon('up') + ' Move to top panel', () => moveTabToPane(tabId, 0, null));
-      }
+      addCtxItem(svgIcon('up') + ' Move to top panel', () => moveTabToPane(tabId, 0, null));
     }
 
     ctxMenu.classList.add('open');
@@ -1712,19 +1736,18 @@
     updateFooter(tab);
   });
 
-  // ── Search / filter ───────────────────────────────────────────────────────
-  searchInput.addEventListener('input', renderFilter);
+  // ── Per-pane search / filter ──────────────────────────────────────────────
+  [0, 1].forEach(paneId => {
+    document.addEventListener('input', e => {
+      if (e.target && e.target.id === 'pane-search-' + paneId) renderPaneFilter(paneId);
+    });
+  });
 
-  function updateMatchCount(tab) {
-    if (!tab) { matchCount.textContent = ''; return; }
-    const q = searchInput.value.trim();
-    if (!q) matchCount.textContent = `${tab.lineCount} lines`;
-  }
-
-  function renderFilter() {
-    const tab = getActiveTab();
+  function renderPaneFilter(paneId) {
+    const tab = getTab(paneActiveTabId[paneId]);
     if (!tab) return;
-    const q = searchInput.value.trim().toLowerCase();
+    const input = getPaneSearchInput(paneId);
+    const q = input ? input.value.trim().toLowerCase() : '';
     let matches = 0;
 
     tab.logEl.querySelectorAll('.log-line').forEach(line => {
@@ -1745,9 +1768,15 @@
       }
     });
 
-    matchCount.textContent = q
-      ? `${matches} visible · ${tab.lineCount} total`
+    const matchEl = getPaneMatchEl(paneId);
+    if (matchEl) matchEl.textContent = q
+      ? `${matches} · ${tab.lineCount} total`
       : `${tab.lineCount} lines`;
+  }
+
+  function clearPaneFilter(tab) {
+    tab.logEl.querySelectorAll('.log-line').forEach(l => l.style.display = '');
+    tab.logEl.querySelectorAll('.line-text[data-raw]').forEach(el => { el.textContent = el.dataset.raw; });
   }
 
   function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
@@ -1769,7 +1798,8 @@
     if (!rawLines.length) return;
 
     const frag = document.createDocumentFragment();
-    const q = (tab.id === activeTabId) ? searchInput.value.trim().toLowerCase() : '';
+    const paneInput = getPaneSearchInput(tab.pane);
+    const q = (tab.logEl.classList.contains('active') && paneInput) ? paneInput.value.trim().toLowerCase() : '';
 
     rawLines.forEach(rawLine => {
       tab.allLogs.push({ text: rawLine, isStatus, isError });
@@ -1820,7 +1850,7 @@
     if (tab.id === activeTabId) {
       updateFooter(tab);
       updatePills(tab);
-      updateMatchCount(tab);
+      renderPaneFilter(tab.pane);
       if (document.getElementById('find-panel').classList.contains('open')) runFind();
     }
   }
@@ -1962,8 +1992,7 @@
     updateFooter(tab);
     updatePills(tab);
     updatePauseBtn();
-    searchInput.value = '';
-    updateMatchCount(tab);
+    renderPaneFilter(tab.pane);
   });
 
   document.getElementById('btn-copy').addEventListener('click', () => {
