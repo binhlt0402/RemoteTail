@@ -1068,21 +1068,20 @@
           <span class="pane-match-count" id="pane-match-0"></span>
         </div>
         <div class="log-container" id="log-container-0"></div>
-      </div>
-    </div>
-
-    <div class="find-panel" id="find-panel">
-      <div class="find-resize" id="find-resize"></div>
-      <div class="find-header">
-        <span class="find-title">Find in log</span>
-        <input type="text" id="find-input" placeholder="Search pattern..." />
-        <span class="find-count" id="find-count"></span>
-        <button class="find-nav" id="find-prev" title="Previous match"><svg class="ic"><use href="#i-up"></use></svg></button>
-        <button class="find-nav" id="find-next" title="Next match"><svg class="ic"><use href="#i-down"></use></svg></button>
-        <button class="find-close" id="find-close" title="Close (Esc)"><svg class="ic"><use href="#i-close"></use></svg></button>
-      </div>
-      <div class="find-results" id="find-results">
-        <div class="find-empty">Type to search in current tab's log</div>
+        <div class="find-panel" id="find-panel-0">
+          <div class="find-resize" id="find-resize-0"></div>
+          <div class="find-header">
+            <span class="find-title">Find in log</span>
+            <input type="text" id="find-input-0" placeholder="Search pattern..." />
+            <span class="find-count" id="find-count-0"></span>
+            <button class="find-nav" id="find-prev-0" title="Previous match"><svg class="ic"><use href="#i-up"></use></svg></button>
+            <button class="find-nav" id="find-next-0" title="Next match"><svg class="ic"><use href="#i-down"></use></svg></button>
+            <button class="find-close" id="find-close-0" title="Close (Esc)"><svg class="ic"><use href="#i-close"></use></svg></button>
+          </div>
+          <div class="find-results" id="find-results-0">
+            <div class="find-empty">Type to search in current tab's log</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1236,7 +1235,8 @@
     wrapToggle.classList.toggle('on', tab.wrapLines);
 
     renderPaneFilter(tab.pane);
-    if (document.getElementById('find-panel').classList.contains('open')) runFind();
+    const fp = getFindPanel(tab.pane);
+    if (fp && fp.classList.contains('open')) runFind(tab.pane);
 
     // Reset both buttons, then update the one for this tab's source
     renderConnectBtn(connectBtn, false);
@@ -1343,10 +1343,27 @@
     lc1.className = 'log-container';
     lc1.id = 'log-container-1';
 
+    const fp1 = document.createElement('div');
+    fp1.className = 'find-panel';
+    fp1.id = 'find-panel-1';
+    fp1.innerHTML =
+      `<div class="find-resize" id="find-resize-1"></div>`
+      + `<div class="find-header">`
+      +   `<span class="find-title">Find in log</span>`
+      +   `<input type="text" id="find-input-1" placeholder="Search pattern..." />`
+      +   `<span class="find-count" id="find-count-1"></span>`
+      +   `<button class="find-nav" id="find-prev-1" title="Previous match">${svgIcon('up')}</button>`
+      +   `<button class="find-nav" id="find-next-1" title="Next match">${svgIcon('down')}</button>`
+      +   `<button class="find-close" id="find-close-1" title="Close (Esc)">${svgIcon('close')}</button>`
+      + `</div>`
+      + `<div class="find-results" id="find-results-1"><div class="find-empty">Type to search in current tab's log</div></div>`;
+
     pane1.appendChild(bar1);
     pane1.appendChild(sb1);
     pane1.appendChild(lc1);
+    pane1.appendChild(fp1);
     viewContainer.appendChild(pane1);
+    setupFindPane(1);
 
     setupDividerDrag(divider, dir);
   }
@@ -1851,7 +1868,8 @@
       updateFooter(tab);
       updatePills(tab);
       renderPaneFilter(tab.pane);
-      if (document.getElementById('find-panel').classList.contains('open')) runFind();
+      const fp = getFindPanel(tab.pane);
+      if (fp && fp.classList.contains('open')) runFind(tab.pane);
     }
   }
 
@@ -2189,124 +2207,162 @@
     browseList.appendChild(frag);
   }
 
-  // ── Find panel ────────────────────────────────────────────────────────────
-  const findPanel   = document.getElementById('find-panel');
-  const findInput   = document.getElementById('find-input');
-  const findCount   = document.getElementById('find-count');
-  const findResults = document.getElementById('find-results');
-  let findMatches   = [];
-  let findCurIdx    = 0;
+  // ── Per-pane Find ────────────────────────────────────────────────────────
+  const paneFind = [
+    { matches: [], curIdx: 0 },
+    { matches: [], curIdx: 0 },
+  ];
 
-  document.getElementById('btn-find-panel').addEventListener('click', () => toggleFindPanel());
-  document.getElementById('find-close').addEventListener('click', () => findPanel.classList.remove('open'));
-  document.getElementById('find-prev').addEventListener('click', () => findStep(-1));
-  document.getElementById('find-next').addEventListener('click', () => findStep(1));
+  function getActivePaneId() { const t = getActiveTab(); return t ? t.pane : 0; }
+  function getFindPanel(p)   { return document.getElementById('find-panel-' + p); }
+  function getFindInput(p)   { return document.getElementById('find-input-' + p); }
+  function getFindCount(p)   { return document.getElementById('find-count-' + p); }
+  function getFindResults(p) { return document.getElementById('find-results-' + p); }
+
+  function setupFindPane(paneId) {
+    const fp = getFindPanel(paneId);
+    if (!fp) return;
+    fp.querySelector('.find-close').addEventListener('click', () => fp.classList.remove('open'));
+    fp.querySelector('[id^="find-prev"]').addEventListener('click', () => findStep(-1, paneId));
+    fp.querySelector('[id^="find-next"]').addEventListener('click', () => findStep(1, paneId));
+    const inp = getFindInput(paneId);
+    inp.addEventListener('input', () => { paneFind[paneId].curIdx = 0; runFind(paneId); });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); findStep(e.shiftKey ? -1 : 1, paneId); }
+    });
+    setupFindResize(paneId);
+  }
+
+  function setupFindResize(paneId) {
+    const handle = document.getElementById('find-resize-' + paneId);
+    if (!handle) return;
+    let dragging = false, startY = 0, startH = 0;
+    handle.addEventListener('mousedown', e => {
+      dragging = true; startY = e.clientY;
+      startH = getFindPanel(paneId).offsetHeight;
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'n-resize';
+    });
+    document.addEventListener('mousemove', e => {
+      if (!dragging) return;
+      const newH = Math.max(120, Math.min(600, startH + (startY - e.clientY)));
+      getFindPanel(paneId).style.height = newH + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+    });
+  }
+
+  setupFindPane(0);
+
+  document.getElementById('btn-find-panel').addEventListener('click', () => toggleFindPanel(getActivePaneId()));
 
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
       e.preventDefault();
-      toggleFindPanel(true);
+      toggleFindPanel(getActivePaneId(), true);
     }
-    if (e.key === 'Escape' && findPanel.classList.contains('open')) {
-      findPanel.classList.remove('open');
+    if (e.key === 'Escape') {
+      [0, 1].forEach(p => { const fp = getFindPanel(p); if (fp) fp.classList.remove('open'); });
     }
   });
 
-  function toggleFindPanel(forceOpen) {
-    const open = forceOpen === true ? true : !findPanel.classList.contains('open');
-    findPanel.classList.toggle('open', open);
-    if (open) { findInput.focus(); findInput.select(); runFind(); }
+  function toggleFindPanel(paneId, forceOpen) {
+    const fp = getFindPanel(paneId);
+    if (!fp) return;
+    const open = forceOpen === true ? true : !fp.classList.contains('open');
+    fp.classList.toggle('open', open);
+    if (open) { getFindInput(paneId).focus(); getFindInput(paneId).select(); runFind(paneId); }
   }
-
-  findInput.addEventListener('input', () => { findCurIdx = 0; runFind(); });
-  findInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); findStep(e.shiftKey ? -1 : 1); }
-  });
 
   function escapeHtml(s) {
     return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function runFind() {
-    const tab = getActiveTab();
-    const q = findInput.value.trim().toLowerCase();
+  function runFind(paneId) {
+    const tab = getTab(paneActiveTabId[paneId]);
+    const inp = getFindInput(paneId);
+    const results = getFindResults(paneId);
+    const countEl = getFindCount(paneId);
+    const state = paneFind[paneId];
+    const q = inp ? inp.value.trim().toLowerCase() : '';
 
     if (!q || !tab) {
-      findResults.innerHTML = '<div class="find-empty">Type to search in current tab\'s log</div>';
-      findCount.textContent = '';
-      findMatches = [];
+      if (results) results.innerHTML = '<div class="find-empty">Type to search in current tab\'s log</div>';
+      if (countEl) countEl.textContent = '';
+      state.matches = [];
       return;
     }
 
     const matches = [];
     tab.allLogs.forEach((entry, i) => {
-      if (!entry.isStatus && entry.text.toLowerCase().includes(q)) {
+      if (!entry.isStatus && entry.text.toLowerCase().includes(q))
         matches.push({ ...entry, lineNum: i + 1 });
-      }
     });
-    findMatches = matches;
+    state.matches = matches;
 
     if (!matches.length) {
-      findResults.innerHTML = '<div class="find-empty">No matches found</div>';
-      findCount.textContent = 'No matches';
+      if (results) results.innerHTML = '<div class="find-empty">No matches found</div>';
+      if (countEl) countEl.textContent = 'No matches';
       return;
     }
 
-    if (findCurIdx >= matches.length) findCurIdx = 0;
+    if (state.curIdx >= matches.length) state.curIdx = 0;
 
     const frag = document.createDocumentFragment();
     const re = new RegExp(`(${escapeRe(q)})`, 'gi');
-
     matches.forEach((entry, i) => {
       const div = document.createElement('div');
-      div.className = 'find-item' + (i === findCurIdx ? ' active' : '');
-
+      div.className = 'find-item' + (i === state.curIdx ? ' active' : '');
       const numEl = document.createElement('span');
       numEl.className = 'find-item-num';
       numEl.textContent = entry.lineNum;
-
       const textEl = document.createElement('span');
       textEl.className = 'find-item-text';
       textEl.innerHTML = escapeHtml(entry.text).replace(re, '<span class="highlight">$1</span>');
-
       div.appendChild(numEl);
       div.appendChild(textEl);
-      div.addEventListener('click', () => { findCurIdx = i; highlightFindCur(true); });
+      div.addEventListener('click', () => { state.curIdx = i; highlightFindCur(true, paneId); });
       frag.appendChild(div);
     });
 
-    findResults.innerHTML = '';
-    findResults.appendChild(frag);
-    findCount.textContent = `${findCurIdx + 1} / ${matches.length}`;
+    if (results) { results.innerHTML = ''; results.appendChild(frag); }
+    if (countEl) countEl.textContent = `${state.curIdx + 1} / ${matches.length}`;
+    highlightFindCur(false, paneId);
   }
 
-  function findStep(dir) {
-    if (!findMatches.length) return;
-    findCurIdx = (findCurIdx + dir + findMatches.length) % findMatches.length;
-    highlightFindCur(true);
+  function findStep(dir, paneId) {
+    const state = paneFind[paneId];
+    if (!state.matches.length) return;
+    state.curIdx = (state.curIdx + dir + state.matches.length) % state.matches.length;
+    highlightFindCur(true, paneId);
   }
 
-  function highlightFindCur(scroll) {
-    const items = findResults.querySelectorAll('.find-item');
-    items.forEach((el, i) => el.classList.toggle('active', i === findCurIdx));
-    findCount.textContent = findMatches.length ? `${findCurIdx + 1} / ${findMatches.length}` : 'No matches';
-    const active = items[findCurIdx];
+  function highlightFindCur(scroll, paneId) {
+    const state = paneFind[paneId];
+    const results = getFindResults(paneId);
+    const countEl = getFindCount(paneId);
+    if (!results) return;
+    const items = results.querySelectorAll('.find-item');
+    items.forEach((el, i) => el.classList.toggle('active', i === state.curIdx));
+    if (countEl) countEl.textContent = state.matches.length ? `${state.curIdx + 1} / ${state.matches.length}` : 'No matches';
+    const active = items[state.curIdx];
     if (active) active.scrollIntoView({ block: 'nearest' });
-    if (scroll && findMatches[findCurIdx]) {
-      const tab = getActiveTab();
-      if (tab) scrollToLine(tab, findMatches[findCurIdx].lineNum);
+    if (scroll && state.matches[state.curIdx]) {
+      const tab = getTab(paneActiveTabId[paneId]);
+      if (tab) scrollToLine(tab, state.matches[state.curIdx].lineNum);
     }
   }
 
   function scrollToLine(tab, lineNum) {
     const lineEl = tab.logEl.querySelector(`[data-line="${lineNum}"]`);
     if (!lineEl) return;
-
-    // Pause autoscroll while jumping
     const prev = tab.autoScroll;
     tab.autoScroll = false;
     autoscrollToggle.classList.remove('on');
-
     lineEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
     lineEl.classList.add('line-flash');
     setTimeout(() => {
@@ -2315,33 +2371,6 @@
       autoscrollToggle.classList.toggle('on', prev);
     }, 1000);
   }
-
-  // Resize handle
-  (function () {
-    const handle = document.getElementById('find-resize');
-    let dragging = false, startY = 0, startH = 0;
-
-    handle.addEventListener('mousedown', e => {
-      dragging = true;
-      startY = e.clientY;
-      startH = findPanel.offsetHeight;
-      document.body.style.userSelect = 'none';
-      document.body.style.cursor = 'n-resize';
-    });
-
-    document.addEventListener('mousemove', e => {
-      if (!dragging) return;
-      const newH = Math.max(120, Math.min(600, startH + (startY - e.clientY)));
-      findPanel.style.height = newH + 'px';
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-    });
-  })();
 
   // ── Theme ─────────────────────────────────────────────────────────────────
   let currentTheme = 'dark';
