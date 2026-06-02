@@ -475,8 +475,6 @@
   .view-container.split-h > .view-divider { width: 4px; cursor: col-resize; }
   .view-container.split-v > .view-divider { height: 4px; cursor: row-resize; }
 
-  .view-pane { outline: 2px solid transparent; outline-offset: -2px; transition: outline-color 0.15s; }
-  .view-pane.pane-focused { outline-color: var(--green); }
 
   /* ── Context menu ──────────────────────────────────────────────────────── */
   .ctx-menu {
@@ -1155,13 +1153,6 @@
   let splitDir = null;            // null | 'h' | 'v'
   let paneActiveTabId = [null, null];  // per-pane active tab
 
-  function updatePaneFocus(focusedPane) {
-    [0, 1].forEach(p => {
-      const el = getPaneEl(p);
-      if (el) el.classList.toggle('pane-focused', p === focusedPane);
-    });
-  }
-
   function activatePaneOnClick(paneId) {
     const pane = getPaneEl(paneId);
     if (!pane) return;
@@ -1240,7 +1231,6 @@
 
     activeTabId = id;
     paneActiveTabId[tab.pane] = id;
-    updatePaneFocus(tab.pane);
 
     // Only toggle visibility within this pane; other pane keeps its active tab
     tabs.filter(t => t.pane === tab.pane).forEach(t => t.logEl.classList.remove('active'));
